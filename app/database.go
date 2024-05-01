@@ -9,20 +9,16 @@ import (
 )
 
 func NewDB() *sql.DB {
-	connStr := "postgres://postgres:admin@localhost/db_cat_social?sslmode=disable"
+	connStr := "postgres://postgres:admin@localhost:5432/db_cat_social?sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
-	var count int
-	db.QueryRow("SELECT count(*) FROM user").Scan(&count)
-	// Mengonversi nilai count menjadi string
-	countStr := fmt.Sprintf("%d", count)
-
-	// Mencetak nilai count dalam bentuk string
-	fmt.Println("Jumlah baris:", countStr)
 	if err != nil {
 		panic(err)
 	}
 	// defer db.Close()
-
+	err = db.Ping()
+	if err != nil {
+		return nil
+	}
 	db.SetMaxIdleConns(5)
 	db.SetMaxOpenConns(20)
 	db.SetConnMaxLifetime(60 * time.Minute)

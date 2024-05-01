@@ -1,12 +1,9 @@
 package repository
 
 import (
-	"cat-social-be/helper"
 	"cat-social-be/model/domain"
 	"context"
 	"database/sql"
-	"errors"
-	"fmt"
 
 	_ "github.com/lib/pq"
 )
@@ -19,28 +16,24 @@ func NewUserRepository() UserRepository {
 }
 
 func (repository *UserRepositoryImpl) Login(ctx context.Context, tx *sql.Tx, user domain.User) (domain.User, error) {
-	fmt.Print(user.Email, user.Password)
-	// SQL := "select email, password from user where email = 'aliefazuka123@gmail.com'"
-	SQL := "SELECT * FROM user WHERE name = 'alip'"
-	rows, err := tx.QueryContext(ctx, SQL, user.Email)
-	helper.PanicIfError(err)
-	defer rows.Close()
-
+	query := "SELECT * FROM cobaz WHERE email = $1"
+	tx.QueryRow(query, user.Email).Scan(&user.Id, &user.Email, &user.Name, &user.Password)
 	resultUser := domain.User{}
-	if rows.Next() {
-		err := rows.Scan(&user.Email, &user.Password)
-		helper.PanicIfError(err)
-		fmt.Println(resultUser)
-		return resultUser, nil
-	} else {
-		return resultUser, errors.New("user is not found")
-	}
+	resultUser.Id = user.Id
+	resultUser.Email = user.Email
+	resultUser.Name = user.Name
+	resultUser.Password = user.Password
+	return resultUser, nil
 }
 
 func (repository *UserRepositoryImpl) Register(ctx context.Context, tx *sql.Tx, user domain.User) (domain.User, error) {
-	SQL := "update user set name = ? where id = ?"
-	_, err := tx.ExecContext(ctx, SQL, user.Name, user.Id)
-	helper.PanicIfError(err)
-
-	return user, nil
+	var pk int
+	query := `INSERT INTO cobaz (email, name, password) VALUES ($1,$2,$3) RETURNING id`
+	tx.QueryRow(query, user.Email, user.Name, user.Password).Scan(&pk)
+	resultUser := domain.User{}
+	resultUser.Id = pk
+	resultUser.Email = user.Email
+	resultUser.Name = user.Name
+	resultUser.Password = user.Password
+	return resultUser, nil
 }

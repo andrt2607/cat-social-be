@@ -63,11 +63,17 @@ func (service *UserServiceImpl) Register(ctx context.Context, request requestdto
 
 	// user.Name = request.Name
 
-	// user = service.UserRepository.Update(ctx, tx, user)
+	user := domain.User{
+		Name:     request.Name,
+		Email:    request.Email,
+		Password: request.Password,
+	}
+
+	user, _ = service.UserRepository.Register(ctx, tx, user)
 
 	// return helper.ToCategoryResponse(user)
 	return responsedto.DefaultResponse{
 		Message: "OK",
-		Data:    "Example",
+		Data:    user,
 	}
 }

@@ -39,10 +39,10 @@ func (controller *UserControllerImpl) Register(writer http.ResponseWriter, reque
 	userCreateRequest := requestdto.UserCreateRequest{}
 	helper.ReadFromRequestBody(request, &userCreateRequest)
 
-	categoryResponse := controller.UserService.Login(request.Context(), userCreateRequest)
+	registerResponse := controller.UserService.Register(request.Context(), userCreateRequest)
 	resultResponse := responsedto.DefaultResponse{
 		Message: "Boleh",
-		Data:    categoryResponse,
+		Data:    registerResponse,
 	}
 
 	helper.WriteToResponseBody(writer, resultResponse)
