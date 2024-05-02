@@ -2,7 +2,6 @@ package app
 
 import (
 	controller "cat-social-be/controller/user"
-	"cat-social-be/middleware"
 	"database/sql"
 
 	"github.com/gin-gonic/gin"
@@ -27,9 +26,10 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 
 	r.POST("/api/v1/login", controller.Login)
 
-	authMiddlewareRoutes := r.Group("/api/v1/auth")
-	authMiddlewareRoutes.Use(middleware.JwtAuthMiddleware())
-	authMiddlewareRoutes.POST("/register", controller.Register)
+	// authMiddlewareRoutes := r.Group("/api/v1/auth")
+	// authMiddlewareRoutes.Use(middleware.JwtAuthMiddleware())
+	// authMiddlewareRoutes.POST("/register", controller.Register)
+	r.POST("/api/v1/auth/register", controller.Register)
 	// router.PanicHandler = exception.ErrorHandler
 
 	return r
