@@ -2,38 +2,27 @@ package repository
 
 import (
 	"cat-social-be/model/domain"
-	"context"
+	requestdto "cat-social-be/model/dto/request"
 	"database/sql"
+	"fmt"
 
+	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
 )
 
-type UserRepositoryImpl struct {
-}
-
-func NewUserRepository() UserRepository {
-	return &UserRepositoryImpl{}
-}
-
-func (repository *UserRepositoryImpl) Login(ctx context.Context, tx *sql.Tx, user domain.User) (domain.User, error) {
-	query := "SELECT * FROM cobaz WHERE email = $1"
-	tx.QueryRow(query, user.Email).Scan(&user.Id, &user.Email, &user.Name, &user.Password)
+func Login(c *gin.Context, tx *sql.DB, user requestdto.UserCreateRequest) (domain.User, error) {
+	query := "SELECT * FROM users WHERE email = $1"
 	resultUser := domain.User{}
-	resultUser.Id = user.Id
-	resultUser.Email = user.Email
-	resultUser.Name = user.Name
-	resultUser.Password = user.Password
+	tx.QueryRow(query, user.Email).Scan(&resultUser.Id, &resultUser.Email, &resultUser.Name, &resultUser.Password)
+	fmt.Println(resultUser)
+
 	return resultUser, nil
 }
 
-func (repository *UserRepositoryImpl) Register(ctx context.Context, tx *sql.Tx, user domain.User) (domain.User, error) {
-	var pk int
-	query := `INSERT INTO cobaz (email, name, password) VALUES ($1,$2,$3) RETURNING id`
-	tx.QueryRow(query, user.Email, user.Name, user.Password).Scan(&pk)
+func Register(c *gin.Context, tx *sql.DB, user requestdto.UserCreateRequest) (domain.User, error) {
+	query := "INSERT INTO users (email, name, password) VALUES ($1,$2,$3) RETURNING id"
 	resultUser := domain.User{}
-	resultUser.Id = pk
-	resultUser.Email = user.Email
-	resultUser.Name = user.Name
-	resultUser.Password = user.Password
+	tx.QueryRow(query, user.Email, user.Name, user.Password).Scan(&resultUser.Id, &resultUser.Email, &resultUser.Name, &resultUser.Password)
+	fmt.Println("done tambah", resultUser)
 	return resultUser, nil
 }
