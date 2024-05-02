@@ -3,47 +3,43 @@ package controller
 import (
 	"cat-social-be/helper"
 	requestdto "cat-social-be/model/dto/request"
-	responsedto "cat-social-be/model/dto/response"
-	service "cat-social-be/service/user"
+	repository "cat-social-be/repository/user"
+	"database/sql"
 	"fmt"
 	"net/http"
 
-	"github.com/julienschmidt/httprouter"
+	"github.com/gin-gonic/gin"
 )
 
-type UserControllerImpl struct {
-	UserService service.UserService
-}
-
-func NewUserController(UserService service.UserService) UserController {
-	return &UserControllerImpl{
-		UserService: UserService,
-	}
-}
-
-func (controller *UserControllerImpl) Login(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-	fmt.Print("masuk login")
+func Login(c *gin.Context) {
+	db := c.MustGet("db").(*sql.DB)
 	userCreateRequest := requestdto.UserCreateRequest{}
-	helper.ReadFromRequestBody(request, &userCreateRequest)
+	c.ShouldBindJSON(&userCreateRequest)
+	// helper.ReadFromRequestBody(request, &userCreateRequest)
 
-	categoryResponse := controller.UserService.Login(request.Context(), userCreateRequest)
-	resultResponse := responsedto.DefaultResponse{
-		Message: "OK",
-		Data:    categoryResponse,
-	}
+	loginResponse, _ := repository.Login(c, db, userCreateRequest)
+	token, _ := helper.GenerateToken("USER_CAT")
+	c.JSON(http.StatusOK, gin.H{"error": false, "message": "Berhasil login user", "data": loginResponse, "token": token})
+	// resultResponse := responsedto.DefaultResponse{
+	// 	Message: "OK",
+	// 	Data:    categoryResponse,
+	// }
 
-	helper.WriteToResponseBody(writer, resultResponse)
+	// helper.WriteToResponseBody(writer, resultResponse)
 }
 
-func (controller *UserControllerImpl) Register(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
+func Register(c *gin.Context) {
+	db := c.MustGet("db").(*sql.DB)
 	userCreateRequest := requestdto.UserCreateRequest{}
-	helper.ReadFromRequestBody(request, &userCreateRequest)
-
-	registerResponse := controller.UserService.Register(request.Context(), userCreateRequest)
-	resultResponse := responsedto.DefaultResponse{
-		Message: "Boleh",
-		Data:    registerResponse,
+	c.ShouldBindJSON(&userCreateRequest)
+	userToken, _ := helper.ExtractTokenRole(c)
+	fmt.Println("userToken", userToken)
+	if userToken != "USER_CAT" {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+			"error": "You are unauthorized to access this resource, this resource for USER_CAT user",
+		})
+		return
 	}
-
-	helper.WriteToResponseBody(writer, resultResponse)
+	loginResponse, _ := repository.Register(c, db, userCreateRequest)
+	c.JSON(http.StatusOK, gin.H{"error": false, "message": "Berhasil register user", "data": loginResponse})
 }

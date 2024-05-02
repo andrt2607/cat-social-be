@@ -1,31 +1,20 @@
 package middleware
 
 import (
+	"cat-social-be/helper"
 	"net/http"
+
+	"github.com/gin-gonic/gin"
 )
 
-type AuthMiddleware struct {
-	Handler http.Handler
-}
-
-func NewAuthMiddleware(handler http.Handler) *AuthMiddleware {
-	return &AuthMiddleware{Handler: handler}
-}
-
-func (middleware *AuthMiddleware) ServeHTTP(writer http.ResponseWriter, request *http.Request) {
-	middleware.Handler.ServeHTTP(writer, request)
-	// if "RAHASIA" == request.Header.Get("X-API-Key") {
-	// 	// ok
-	// } else {
-	// 	// error
-	// 	writer.Header().Set("Content-Type", "application/json")
-	// 	writer.WriteHeader(http.StatusUnauthorized)
-
-	// 	webResponse := responsedto.DefaultResponse{
-	// 		// Code:   http.StatusUnauthorized,
-	// 		// Status: "UNAUTHORIZED",
-	// 	}
-
-	// 	helper.WriteToResponseBody(writer, webResponse)
-	// }
+func JwtAuthMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		err := helper.TokenValid(c)
+		if err != nil {
+			c.String(http.StatusUnauthorized, err.Error())
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
 }
