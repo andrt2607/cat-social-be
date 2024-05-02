@@ -38,8 +38,8 @@ func Login(c *gin.Context) {
 		})
 		return
 	}
-	loginResponse, _ := repository.Login(c, db, userLoginRequest)
-	c.JSON(http.StatusOK, loginResponse)
+
+	repository.Login(c, db, userLoginRequest)
 }
 
 func Register(c *gin.Context) {
@@ -69,6 +69,14 @@ func Register(c *gin.Context) {
 		})
 		return
 	}
+	hashedPassword, err := helper.HashPassword(userCreateRequest.Password)
+	if err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+	userCreateRequest.Password = hashedPassword
 	registerResponse, _ := repository.Register(c, db, userCreateRequest)
 	c.JSON(http.StatusCreated, registerResponse)
 }
