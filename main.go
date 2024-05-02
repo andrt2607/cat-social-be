@@ -35,5 +35,5 @@ func main() {
 	// err := server.ListenAndServe()
 	// helper.PanicIfError(err)
 	r := app.SetupRouter(db)
-	r.Run()
+	r.Run(":3000")
 }
