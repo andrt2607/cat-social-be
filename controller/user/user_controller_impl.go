@@ -11,35 +11,64 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Login(c *gin.Context) {
-	db := c.MustGet("db").(*sql.DB)
-	userCreateRequest := requestdto.UserCreateRequest{}
-	c.ShouldBindJSON(&userCreateRequest)
-	// helper.ReadFromRequestBody(request, &userCreateRequest)
-
-	loginResponse, _ := repository.Login(c, db, userCreateRequest)
-	token, _ := helper.GenerateToken("USER_CAT")
-	c.JSON(http.StatusOK, gin.H{"error": false, "message": "Berhasil login user", "data": loginResponse, "token": token})
-	// resultResponse := responsedto.DefaultResponse{
-	// 	Message: "OK",
-	// 	Data:    categoryResponse,
-	// }
-
-	// helper.WriteToResponseBody(writer, resultResponse)
+func handleInternalServerError(c *gin.Context, err error) {
+	fmt.Println("Internal Server Error:", err)
+	// Mengirim respons dengan status HTTP 500 (Internal Server Error)
+	c.JSON(http.StatusInternalServerError, gin.H{
+		"error": "Internal Server Error",
+	})
 }
 
-func Register(c *gin.Context) {
+func Login(c *gin.Context) {
+	defer func() {
+		if err := recover(); err != nil {
+			handleInternalServerError(c, fmt.Errorf("%v", err))
+		}
+	}()
 	db := c.MustGet("db").(*sql.DB)
-	userCreateRequest := requestdto.UserCreateRequest{}
-	c.ShouldBindJSON(&userCreateRequest)
-	userToken, _ := helper.ExtractTokenRole(c)
-	fmt.Println("userToken", userToken)
-	if userToken != "USER_CAT" {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-			"error": "You are unauthorized to access this resource, this resource for USER_CAT user",
+	userLoginRequest := requestdto.UserLoginRequest{}
+	c.ShouldBindJSON(&userLoginRequest)
+	if err := helper.ValidateStruct(&userLoginRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if !repository.IsEmailExist(c, db, userLoginRequest.Email) {
+		c.JSON(http.StatusConflict, gin.H{
+			"error": "User Not Found",
 		})
 		return
 	}
-	loginResponse, _ := repository.Register(c, db, userCreateRequest)
-	c.JSON(http.StatusOK, gin.H{"error": false, "message": "Berhasil register user", "data": loginResponse})
+	loginResponse, _ := repository.Login(c, db, userLoginRequest)
+	c.JSON(http.StatusOK, loginResponse)
+}
+
+func Register(c *gin.Context) {
+	defer func() {
+		if err := recover(); err != nil {
+			handleInternalServerError(c, fmt.Errorf("%v", err))
+		}
+	}()
+	db := c.MustGet("db").(*sql.DB)
+	userCreateRequest := requestdto.UserCreateRequest{}
+	c.ShouldBindJSON(&userCreateRequest)
+	if err := helper.ValidateStruct(&userCreateRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	// userToken, _ := helper.ExtractTokenRole(c)
+	// fmt.Println("userToken", userToken)
+	// if userToken != "USER_CAT" {
+	// 	c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+	// 		"error": "You are unauthorized to access this resource, this resource for USER_CAT user",
+	// 	})
+	// 	return
+	// }
+	if repository.IsEmailExist(c, db, userCreateRequest.Email) {
+		c.JSON(http.StatusConflict, gin.H{
+			"error": "Email already exist",
+		})
+		return
+	}
+	registerResponse, _ := repository.Register(c, db, userCreateRequest)
+	c.JSON(http.StatusCreated, registerResponse)
 }
