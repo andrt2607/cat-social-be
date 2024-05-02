@@ -1,4 +1,3 @@
--- Create users table
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
@@ -6,9 +5,9 @@ CREATE TABLE IF NOT EXISTS users (
     password_hash VARCHAR(255) NOT NULL
 );
 
--- Create cats table
 CREATE TABLE IF NOT EXISTS cats (
     id SERIAL PRIMARY KEY,
+    owner_id INT REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(30) NOT NULL,
     race VARCHAR(50) CHECK (race IN (
         'Persian', 'Maine Coon', 'Siamese', 'Ragdoll', 'Bengal', 
@@ -18,15 +17,25 @@ CREATE TABLE IF NOT EXISTS cats (
     age_in_month INT CHECK (age_in_month >= 1 AND age_in_month <= 120082) NOT NULL,
     description TEXT NOT NULL,
     image_urls TEXT[] NOT NULL,
-    owner_id INT REFERENCES users(id) ON DELETE CASCADE,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    is_matched BOOLEAN,
+    is_deleted BOOLEAN,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+    FOREIGN KEY (owner_id) REFERENCES users(id)
 );
 
--- Create matches table
-CREATE TABLE IF NOT EXISTS matches (
+CREATE TABLE IF NOT EXISTS likes (
     id SERIAL PRIMARY KEY,
-    match_cat_id INT REFERENCES cats(id) ON DELETE CASCADE,
-    user_cat_id INT REFERENCES cats(id) ON DELETE CASCADE,
+    owner_id INTEGER,
+    cat_id INTEGER,
+    liked_owner_id INTEGER,
+    liked_cat_id INTEGER,
+    is_approved BOOLEAN DEFAULT NULL,
     message VARCHAR(120) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+    FOREIGN KEY (owner_id) REFERENCES users(id),
+    FOREIGN KEY (liked_owner_id) REFERENCES users(id),
+    FOREIGN KEY (cat_id) REFERENCES cats(id),
+    FOREIGN KEY (liked_cat_id) REFERENCES cats(id)
 );
