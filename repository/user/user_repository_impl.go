@@ -20,9 +20,9 @@ func VerifyPassword(password, hashedPassword string) error {
 
 func Login(c *gin.Context, tx *sql.DB, user requestdto.UserLoginRequest) {
 	var err error
-	query := "SELECT * FROM users WHERE email = $1"
+	query := "SELECT name, password_hash, email FROM users WHERE email = $1"
 	resultUser := domain.User{}
-	errorQuery := tx.QueryRow(query, user.Email).Scan(&resultUser.Id, &resultUser.Email, &resultUser.Name, &resultUser.Password)
+	errorQuery := tx.QueryRow(query, user.Email).Scan(&resultUser.Name, &resultUser.Password, &resultUser.Email)
 	if errorQuery != nil {
 		log.Fatal(errorQuery)
 	}
@@ -68,9 +68,9 @@ func Register(c *gin.Context, tx *sql.DB, user requestdto.UserCreateRequest) (re
 }
 
 func IsEmailExist(c *gin.Context, tx *sql.DB, email string) bool {
-	query := "SELECT * FROM users WHERE email = $1"
+	query := "SELECT email FROM users WHERE email = $1"
 	resultUser := domain.User{}
-	tx.QueryRow(query, email).Scan(&resultUser.Id, &resultUser.Email, &resultUser.Name, &resultUser.Password)
+	tx.QueryRow(query, email).Scan(&resultUser.Email)
 	return resultUser.Email != ""
 }
 
