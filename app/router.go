@@ -2,6 +2,7 @@ package app
 
 import (
 	catController "cat-social-be/controller/cat"
+	matchController "cat-social-be/controller/match"
 	userController "cat-social-be/controller/user"
 	"cat-social-be/middleware"
 	"database/sql"
@@ -18,15 +19,23 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 	})
 
 	//cat
-	catMiddlewareRoutes := r.Group("/api/v1/cats")
+	catMiddlewareRoutes := r.Group("/v1/cat")
 	catMiddlewareRoutes.Use(middleware.JwtAuthMiddleware())
 	catMiddlewareRoutes.GET("/", catController.GetCats)
 	catMiddlewareRoutes.POST("/", catController.CreateCat)
 	catMiddlewareRoutes.PUT("/:id", catController.UpdateCat)
 	catMiddlewareRoutes.DELETE("/:id", catController.DeleteCat)
+	// catMiddlewareRoutes.POST("/match", matchController.CreateMatch)
+	catMiddlewareRoutes.GET("/match", matchController.GetMatches)
+	// catMiddlewareRoutes.POST("/match/approve", matchController.ApproveMatch)
+	// catMiddlewareRoutes.POST("/match/reject", matchController.RejectMatch)
+	// catMiddlewareRoutes.DELETE("/match/:id", matchController.DeleteMatch)
 	//user
-	r.POST("/api/v1/login", userController.Login)
-	r.POST("/api/v1/register", userController.Register)
+	r.POST("/v1/user/login", userController.Login)
+	r.POST("/v1/user/register", userController.Register)
+
+	//match
+
 	// router.PanicHandler = exception.ErrorHandler
 
 	return r
