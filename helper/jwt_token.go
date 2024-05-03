@@ -12,7 +12,7 @@ import (
 
 var API_SECRET = Getenv("API_SECRET", "rahasiasekali")
 
-func GenerateToken(role string) (string, error) {
+func GenerateToken(emailUser string) (string, error) {
 	token_lifespan, err := strconv.Atoi(Getenv("TOKEN_HOUR_LIFESPAN", "24"))
 
 	if err != nil {
@@ -21,7 +21,7 @@ func GenerateToken(role string) (string, error) {
 
 	claims := jwt.MapClaims{}
 	claims["authorized"] = true
-	claims["role"] = role
+	claims["email_user"] = emailUser
 	claims["exp"] = time.Now().Add(time.Hour * time.Duration(token_lifespan)).Unix()
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
@@ -83,10 +83,10 @@ func ExtractTokenID(c *gin.Context) (uint, error) {
 	return 0, nil
 }
 
-func ExtractTokenRole(c *gin.Context) (interface{}, error) {
+func ExtractTokenEmail(c *gin.Context) (interface{}, error) {
 
 	tokenString := ExtractToken(c)
-	fmt.Println("tokenString ExtractTokenRole", tokenString)
+	fmt.Println("tokenString ExtractTokenEmail", tokenString)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -99,7 +99,7 @@ func ExtractTokenRole(c *gin.Context) (interface{}, error) {
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if ok && token.Valid {
 		// uid, err := strconv.ParseUint(fmt.Sprintf("%.0f", claims["user_id"]), 10, 32)
-		stringRole := claims["role"]
+		stringRole := claims["email_user"]
 		if err != nil {
 			return "error", err
 		}
