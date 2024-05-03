@@ -5,6 +5,8 @@ import (
 
 	"golang.org/x/crypto/bcrypt"
 	"github.com/joho/godotenv"
+
+	"log"
 )
 
 func Getenv(key, fallback string) string {
@@ -12,8 +14,10 @@ func Getenv(key, fallback string) string {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
+
+	valueEnv := os.Getenv(key)
 	
-	if valueEnv, ok := os.Getenv(key); ok {
+	if len(valueEnv) > 0 {
 		return valueEnv
 	}
 	return fallback

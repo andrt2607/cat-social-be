@@ -12,9 +12,15 @@ type Cat struct {
 	AgeInMonth  string
 	Description string
 	ImageUrls   string
-	OwnerId     string
+	OwnerId  	string
 	IsMatched   bool
 	IsDeleted   bool
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+}
+
+type CatCheck struct {
+	MatchCat Cat
+	UserCat Cat
+	Response string
 }

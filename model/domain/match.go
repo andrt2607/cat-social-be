@@ -6,11 +6,11 @@ import (
 
 type Match struct {
 	Id          	int
-	ownerEmail      string
-	catId        	string
-	likedOwnerEmail string
-	likedCatId  	string
-	isApproved 		string
+	OwnerId      string
+	CatId        	string
+	LikedOwnerId string
+	LikedCatId  	string
+	IsApproved 		string
 	Messaged   		string
 	CreatedAt   	time.Time
 	UpdatedAt   	time.Time
