@@ -2,7 +2,9 @@ CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
     email VARCHAR(255) UNIQUE NOT NULL,
     name VARCHAR(50) NOT NULL,
-    password_hash VARCHAR(255) NOT NULL
+    password_hash VARCHAR(255) NOT null,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS cats (
@@ -30,7 +32,7 @@ CREATE TABLE IF NOT EXISTS likes (
     cat_id INTEGER,
     liked_owner_id INTEGER,
     liked_cat_id INTEGER,
-    is_approved BOOLEAN DEFAULT NULL,
+    approval_status VARCHAR(15) CHECK (approval_status IN ('approved', 'rejected', 'pending')) NOT NULL,
     message VARCHAR(120) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
