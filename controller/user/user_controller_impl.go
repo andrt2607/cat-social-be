@@ -55,7 +55,7 @@ func Register(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	// userToken, _ := helper.ExtractTokenRole(c)
+	// userToken, _ := helper.ExtractTokenEmail(c)
 	// fmt.Println("userToken", userToken)
 	// if userToken != "USER_CAT" {
 	// 	c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
