@@ -3,7 +3,7 @@ package controller
 import (
 	"cat-social-be/helper"
 	requestdto "cat-social-be/model/dto/request"
-	repository "cat-social-be/repository/match"
+	matchRepository "cat-social-be/repository/match"
 	"database/sql"
 	"fmt"
 	"net/http"
@@ -20,58 +20,35 @@ func handleInternalServerError(c *gin.Context, err error) {
 }
 
 func CreateMatch(c *gin.Context) {
+	fmt.Println("masuk sini")
 	defer func() {
 		if err := recover(); err != nil {
 			handleInternalServerError(c, fmt.Errorf("%v", err))
 		}
 	}()
 	db := c.MustGet("db").(*sql.DB)
-	userLoginRequest := requestdto.UserLoginRequest{}
-	c.ShouldBindJSON(&userLoginRequest)
-	if err := helper.ValidateStruct(&userLoginRequest); err != nil {
+	matchCreateRequest := requestdto.MatchCreateRequest{}
+	c.ShouldBindJSON(&matchCreateRequest)
+	//validasi input
+	if err := helper.ValidateStruct(&matchCreateRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	// if !repository.IsEmailExist(c, db, userLoginRequest.Email) {
-	// 	c.JSON(http.StatusConflict, gin.H{
-	// 		"error": "User Not Found",
-	// 	})
-	// 	return
-	// }
 
-	repository.GetMatches(c, db)
+	//validasi Match Request
+	catUser, matchUser, matchMessage, err_code, err_message, err_validate := matchRepository.ValidateCreateMatch(c, db, matchCreateRequest)
+	if err_validate != nil {
+		c.JSON(err_code, gin.H{
+			"error": err_message,
+		})
+		return
+	}
+
+	//call repository
+	matchCreateResponse, _ := matchRepository.CreateMatch(c, db, catUser, matchUser, matchMessage)
+	c.JSON(http.StatusCreated, matchCreateResponse)
 }
 
-//	func GetMatches(c *gin.Context) {
-//		defer func() {
-//			if err := recover(); err != nil {
-//				handleInternalServerError(c, fmt.Errorf("%v", err))
-//			}
-//		}()
-//		db := c.MustGet("db").(*sql.DB)
-//		userCreateRequest := requestdto.UserCreateRequest{}
-//		c.ShouldBindJSON(&userCreateRequest)
-//		if err := helper.ValidateStruct(&userCreateRequest); err != nil {
-//			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-//			return
-//		}
-//		if repository.IsEmailExist(c, db, userCreateRequest.Email) {
-//			c.JSON(http.StatusConflict, gin.H{
-//				"error": "Email already exist",
-//			})
-//			return
-//		}
-//		hashedPassword, err := helper.HashPassword(userCreateRequest.Password)
-//		if err != nil {
-//			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-//				"error": err.Error(),
-//			})
-//			return
-//		}
-//		userCreateRequest.Password = hashedPassword
-//		registerResponse, _ := repository.Register(c, db, userCreateRequest)
-//		c.JSON(http.StatusCreated, registerResponse)
-//	}
 func GetMatches(c *gin.Context) {
 	defer func() {
 		if err := recover(); err != nil {
@@ -79,17 +56,34 @@ func GetMatches(c *gin.Context) {
 		}
 	}()
 	db := c.MustGet("db").(*sql.DB)
-	repository.GetMatches(c, db)
+	matchRepository.GetMatches(c, db)
 }
 
 func ApproveMatch(c *gin.Context) {
+	defer func() {
+		if err := recover(); err != nil {
+			handleInternalServerError(c, fmt.Errorf("%v", err))
+		}
+	}()
+	db := c.MustGet("db").(*sql.DB)
+	matchApproveRequest := requestdto.MatchApproveRequest{}
+	c.ShouldBindJSON(&matchApproveRequest)
+	//validasi input
+	if err := helper.ValidateStruct(&matchApproveRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	//validasi Match Request
+	// _, err_code, err_message := matchRepository.ValidateApproveMatch(c, db, matchApproveRequest)
+	// if err_code != nil {
+	// 	c.JSON(err_code, gin.H{
+	// 		"error": err_message,
+	// 	})
+	// 	return
+	// }
 
+	//call repository
+	matchApproveResponse, _ := matchRepository.ApproveMatch(c, db, matchApproveRequest)
+	c.JSON(http.StatusCreated, matchApproveResponse)
 }
 
-func RejectMatch(c *gin.Context) {
-
-}
-
-func DeleteMatch(c *gin.Context) {
-
-}
