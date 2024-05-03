@@ -97,5 +97,5 @@ func DeleteCat(c *gin.Context) {
 	}
 	//call repository
 	catCreateResponse, _ := catRepository.DeleteCat(c, db, catCreateRequest)
-	c.JSON(http.StatusCreated, catCreateResponse)
+	c.JSON(http.StatusOK, catCreateResponse)
 }

@@ -26,6 +26,7 @@ func CreateMatch(c *gin.Context) {
 			handleInternalServerError(c, fmt.Errorf("%v", err))
 		}
 	}()
+	fmt.Println("masuk sini 2")
 	db := c.MustGet("db").(*sql.DB)
 	matchCreateRequest := requestdto.MatchCreateRequest{}
 	c.ShouldBindJSON(&matchCreateRequest)
@@ -43,7 +44,7 @@ func CreateMatch(c *gin.Context) {
 		})
 		return
 	}
-
+	fmt.Println("message : ", matchMessage)
 	//call repository
 	matchCreateResponse, _ := matchRepository.CreateMatch(c, db, catUser, matchUser, matchMessage)
 	c.JSON(http.StatusCreated, matchCreateResponse)
@@ -73,6 +74,7 @@ func ApproveMatch(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	fmt.Println("masuk sini 3")
 	//validasi Match Request
 	// _, err_code, err_message := matchRepository.ValidateApproveMatch(c, db, matchApproveRequest)
 	// if err_code != nil {
@@ -84,6 +86,6 @@ func ApproveMatch(c *gin.Context) {
 
 	//call repository
 	matchApproveResponse, _ := matchRepository.ApproveMatch(c, db, matchApproveRequest)
+	fmt.Println("masuk sini 4")
 	c.JSON(http.StatusCreated, matchApproveResponse)
 }
-
