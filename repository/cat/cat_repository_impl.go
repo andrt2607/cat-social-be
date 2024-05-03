@@ -21,11 +21,11 @@ func CreateCat(c *gin.Context, tx *sql.DB, user requestdto.CatCreateRequest) (re
 	//get id user from email token jwt
 	loggedUserEmail, _ := helper.ExtractTokenEmail(c)
 	idUser := repository.FindIdByEmail(c, tx, loggedUserEmail.(string))
-	query := "INSERT INTO cats (name, race, sex, age_in_month, description, image_urls ,owner_id) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, created_at"
+	query := "INSERT INTO cats (name, race, sex, age_in_month, description, image_urls ,owner_id, is_matched, is_deleted) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, created_at"
 	resultCat := domain.Cat{}
 	//run query insert
 	err := tx.QueryRow(query, user.Name, user.Race, user.Sex, user.AgeInMonth,
-		user.Description, user.ImageUrls, idUser).Scan(&resultCat.Id, &resultCat.CreatedAt)
+		user.Description, user.ImageUrls, idUser, false, false).Scan(&resultCat.Id, &resultCat.CreatedAt)
 	//handle error
 	if err != nil {
 		log.Fatal(err)
@@ -41,7 +41,7 @@ func CreateCat(c *gin.Context, tx *sql.DB, user requestdto.CatCreateRequest) (re
 }
 
 func GetCats(c *gin.Context, tx *sql.DB) (responsedto.DefaultResponse, error) {
-	query := "SELECT id, name, race, sex, age_in_month, description, image_urls, is_matched, created_at FROM cats"
+	query := "SELECT id, name, race, sex, age_in_month, description, image_urls, is_matched, created_at FROM cats WHERE is_deleted = false"
 	filtersString := []string{}
 	//add filter id
 	filterId := c.Query("id")
@@ -76,8 +76,10 @@ func GetCats(c *gin.Context, tx *sql.DB) (responsedto.DefaultResponse, error) {
 	//concat all filter
 	filterGetString := ""
 	if len(filtersString) > 0 {
-		filterGetString = " WHERE " + strings.Join(filtersString, " AND ")
+		filterGetString = strings.Join(filtersString, " AND ")
 	}
+	//add filter order by created_at desc
+	filterGetString += " ORDER BY created_at DESC"
 	//filter limit offset
 	filterLimit := c.Query("limit")
 	filterOffset := c.Query("offset")
@@ -110,26 +112,51 @@ func GetCats(c *gin.Context, tx *sql.DB) (responsedto.DefaultResponse, error) {
 
 func UpdateCat(c *gin.Context, tx *sql.DB, user requestdto.CatCreateRequest) (responsedto.DefaultResponse, error) {
 	//get id user from email token jwt
+	idCat := c.Param("id")
+	//check is already matched
+	if checkIsAlreadyMatched(tx, idCat, string(user.Sex)) {
+		response := responsedto.DefaultResponse{
+			Message: "failed",
+			Data:    "sex is edited when cat is already requested to match",
+		}
+		return response, nil
+	}
+	//get id user from email token jwt
 	loggedUserEmail, _ := helper.ExtractTokenEmail(c)
 	idUser := repository.FindIdByEmail(c, tx, loggedUserEmail.(string))
+	fmt.Println("idUser", idUser)
+	//query update
 	query := "UPDATE cats SET name = $1, race = $2, sex = $3, age_in_month = $4, description = $5, image_urls = $6, owner_id = $7 , updated_at = $9 WHERE id = $8 RETURNING id, created_at"
 	resultCat := domain.Cat{}
-	//run query update
 	err := tx.QueryRow(query, user.Name, user.Race, user.Sex, user.AgeInMonth,
-		user.Description, user.ImageUrls, idUser, c.Param("id"), time.Now()).Scan(&resultCat.Id, &resultCat.CreatedAt)
+		user.Description, user.ImageUrls, idUser, idCat, time.Now()).Scan(&resultCat.Id, &resultCat.CreatedAt)
 	//handle error
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("user hasil update : ", user)
 	response := responsedto.DefaultResponse{
-		Message: "success",
+		Message: "successfully update cat",
 		Data: responsedto.CatCreateResponse{
 			Id:        resultCat.Id,
 			CreatedAt: resultCat.CreatedAt,
 		},
 	}
 	return response, nil
+}
+
+func checkIsAlreadyMatched(tx *sql.DB, idCat string, inputSex string) bool {
+	query := "SELECT sex, is_matched FROM cats WHERE id = $1"
+	resultCat := domain.Cat{}
+	err := tx.QueryRow(query, idCat).Scan(&resultCat.Sex, &resultCat.IsMatched)
+	//handle error
+	if err != nil {
+		log.Fatal(err)
+	}
+	if resultCat.IsMatched && inputSex != resultCat.Sex {
+		return true
+	}
+	return false
 }
 
 func DeleteCat(c *gin.Context, tx *sql.DB, user requestdto.CatCreateRequest) (responsedto.DefaultResponse, error) {

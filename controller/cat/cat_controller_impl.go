@@ -41,7 +41,7 @@ func CreateCat(c *gin.Context) {
 	c.ShouldBindJSON(&catCreateRequest)
 	//validasi input
 	if err := helper.ValidateStruct(&catCreateRequest); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "message": "request doesn’t pass validation"})
 		return
 	}
 	//call repository
@@ -60,14 +60,14 @@ func UpdateCat(c *gin.Context) {
 	c.ShouldBindJSON(&catCreateRequest)
 	//validasi input
 	if err := helper.ValidateStruct(&catCreateRequest); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "message": "request doesn’t pass validation"})
 		return
 	}
 	//validasi id cat
 	_, err := catRepository.FindCatById(c, db)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{
-			"error": "Id cat is not found",
+			"error": "id is not found",
 		})
 		return
 

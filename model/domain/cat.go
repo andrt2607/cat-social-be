@@ -13,8 +13,8 @@ type Cat struct {
 	Description string
 	ImageUrls   string
 	OwnerId     string
-	isMatched   bool
-	isDeleted   bool
+	IsMatched   bool
+	IsDeleted   bool
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
