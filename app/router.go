@@ -1,7 +1,9 @@
 package app
 
 import (
-	controller "cat-social-be/controller/user"
+	catController "cat-social-be/controller/cat"
+	userController "cat-social-be/controller/user"
+	"cat-social-be/middleware"
 	"database/sql"
 
 	"github.com/gin-gonic/gin"
@@ -16,20 +18,15 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 	})
 
 	//cat
-	// router.GET("/api/cats", catController.FindAll)
-	// // router.GET("/api/categories/:categoryId", categoryController.FindById)
-	// router.POST("/api/cat", catController.Create)
-	// router.PUT("/api/cat/:id", catController.Update)
-	// router.DELETE("/api/cat/:id", catController.Delete)
-
+	catMiddlewareRoutes := r.Group("/api/v1/cats")
+	catMiddlewareRoutes.Use(middleware.JwtAuthMiddleware())
+	catMiddlewareRoutes.GET("/", catController.GetCats)
+	catMiddlewareRoutes.POST("/", catController.CreateCat)
+	catMiddlewareRoutes.PUT("/:id", catController.UpdateCat)
+	catMiddlewareRoutes.DELETE("/:id", catController.DeleteCat)
 	//user
-
-	r.POST("/api/v1/login", controller.Login)
-
-	// authMiddlewareRoutes := r.Group("/api/v1/auth")
-	// authMiddlewareRoutes.Use(middleware.JwtAuthMiddleware())
-	// authMiddlewareRoutes.POST("/register", controller.Register)
-	r.POST("/api/v1/auth/register", controller.Register)
+	r.POST("/api/v1/login", userController.Login)
+	r.POST("/api/v1/register", userController.Register)
 	// router.PanicHandler = exception.ErrorHandler
 
 	return r

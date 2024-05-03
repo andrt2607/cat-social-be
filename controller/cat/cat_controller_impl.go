@@ -1,94 +1,101 @@
-// package controller
+package controller
 
-// import (
-// 	"github.com/julienschmidt/httprouter"
-// 	"net/http"
-// 	"programmerzamannow/belajar-golang-restful-api/helper"
-// 	"programmerzamannow/belajar-golang-restful-api/model/web"
-// 	"programmerzamannow/belajar-golang-restful-api/service"
-// 	"strconv"
-// )
+import (
+	"cat-social-be/helper"
+	requestdto "cat-social-be/model/dto/request"
+	catRepository "cat-social-be/repository/cat"
+	"database/sql"
+	"fmt"
+	"net/http"
 
-// type CategoryControllerImpl struct {
-// 	CategoryService service.CategoryService
-// }
+	"github.com/gin-gonic/gin"
+)
 
-// func NewCategoryController(categoryService service.CategoryService) CategoryController {
-// 	return &CategoryControllerImpl{
-// 		CategoryService: categoryService,
-// 	}
-// }
+func handleInternalServerError(c *gin.Context, err error) {
+	fmt.Println("Internal Server Error:", err)
+	// Mengirim respons dengan status HTTP 500 (Internal Server Error)
+	c.JSON(http.StatusInternalServerError, gin.H{
+		"error": "Internal Server Error",
+	})
+}
 
-// func (controller *CategoryControllerImpl) Create(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-// 	categoryCreateRequest := web.CategoryCreateRequest{}
-// 	helper.ReadFromRequestBody(request, &categoryCreateRequest)
+func GetCats(c *gin.Context) {
+	defer func() {
+		if err := recover(); err != nil {
+			handleInternalServerError(c, fmt.Errorf("%v", err))
+		}
+	}()
+	db := c.MustGet("db").(*sql.DB)
+	//call repository
+	catRepository.GetCats(c, db)
+}
 
-// 	categoryResponse := controller.CategoryService.Create(request.Context(), categoryCreateRequest)
-// 	webResponse := web.WebResponse{
-// 		Code:   200,
-// 		Status: "OK",
-// 		Data:   categoryResponse,
-// 	}
+func CreateCat(c *gin.Context) {
+	defer func() {
+		if err := recover(); err != nil {
+			handleInternalServerError(c, fmt.Errorf("%v", err))
+		}
+	}()
+	db := c.MustGet("db").(*sql.DB)
+	catCreateRequest := requestdto.CatCreateRequest{}
+	c.ShouldBindJSON(&catCreateRequest)
+	//validasi input
+	if err := helper.ValidateStruct(&catCreateRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	//call repository
+	catCreateResponse, _ := catRepository.CreateCat(c, db, catCreateRequest)
+	c.JSON(http.StatusCreated, catCreateResponse)
+}
 
-// 	helper.WriteToResponseBody(writer, webResponse)
-// }
+func UpdateCat(c *gin.Context) {
+	defer func() {
+		if err := recover(); err != nil {
+			handleInternalServerError(c, fmt.Errorf("%v", err))
+		}
+	}()
+	db := c.MustGet("db").(*sql.DB)
+	catCreateRequest := requestdto.CatCreateRequest{}
+	c.ShouldBindJSON(&catCreateRequest)
+	//validasi input
+	if err := helper.ValidateStruct(&catCreateRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	//validasi id cat
+	_, err := catRepository.FindCatById(c, db)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Id cat is not found",
+		})
+		return
 
-// func (controller *CategoryControllerImpl) Update(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-// 	categoryUpdateRequest := web.CategoryUpdateRequest{}
-// 	helper.ReadFromRequestBody(request, &categoryUpdateRequest)
+	}
+	//call repository
+	catCreateResponse, _ := catRepository.UpdateCat(c, db, catCreateRequest)
+	c.JSON(http.StatusCreated, catCreateResponse)
+}
 
-// 	categoryId := params.ByName("categoryId")
-// 	id, err := strconv.Atoi(categoryId)
-// 	helper.PanicIfError(err)
+func DeleteCat(c *gin.Context) {
+	defer func() {
+		if err := recover(); err != nil {
+			handleInternalServerError(c, fmt.Errorf("%v", err))
+		}
+	}()
+	db := c.MustGet("db").(*sql.DB)
+	catCreateRequest := requestdto.CatCreateRequest{}
+	c.ShouldBindJSON(&catCreateRequest)
+	//validasi id cat
+	_, err := catRepository.FindCatById(c, db)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Id cat is not found",
+		})
+		return
 
-// 	categoryUpdateRequest.Id = id
-
-// 	categoryResponse := controller.CategoryService.Update(request.Context(), categoryUpdateRequest)
-// 	webResponse := web.WebResponse{
-// 		Code:   200,
-// 		Status: "OK",
-// 		Data:   categoryResponse,
-// 	}
-
-// 	helper.WriteToResponseBody(writer, webResponse)
-// }
-
-// func (controller *CategoryControllerImpl) Delete(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-// 	categoryId := params.ByName("categoryId")
-// 	id, err := strconv.Atoi(categoryId)
-// 	helper.PanicIfError(err)
-
-// 	controller.CategoryService.Delete(request.Context(), id)
-// 	webResponse := web.WebResponse{
-// 		Code:   200,
-// 		Status: "OK",
-// 	}
-
-// 	helper.WriteToResponseBody(writer, webResponse)
-// }
-
-// func (controller *CategoryControllerImpl) FindById(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-// 	categoryId := params.ByName("categoryId")
-// 	id, err := strconv.Atoi(categoryId)
-// 	helper.PanicIfError(err)
-
-// 	categoryResponse := controller.CategoryService.FindById(request.Context(), id)
-// 	webResponse := web.WebResponse{
-// 		Code:   200,
-// 		Status: "OK",
-// 		Data:   categoryResponse,
-// 	}
-
-// 	helper.WriteToResponseBody(writer, webResponse)
-// }
-
-// func (controller *CategoryControllerImpl) FindAll(writer http.ResponseWriter, request *http.Request, params httprouter.Params) {
-// 	categoryResponses := controller.CategoryService.FindAll(request.Context())
-// 	webResponse := web.WebResponse{
-// 		Code:   200,
-// 		Status: "OK",
-// 		Data:   categoryResponses,
-// 	}
-
-// 	helper.WriteToResponseBody(writer, webResponse)
-// }
+	}
+	//call repository
+	catCreateResponse, _ := catRepository.DeleteCat(c, db, catCreateRequest)
+	c.JSON(http.StatusCreated, catCreateResponse)
+}

@@ -9,9 +9,9 @@ type Cat struct {
 	Name        string
 	Race        string
 	Sex         string
-	BirthDate   string
+	AgeInMonth  string
 	Description string
-	ImageUrl    string
+	ImageUrls   string
 	OwnerId     string
 	isMatched   bool
 	isDeleted   bool
