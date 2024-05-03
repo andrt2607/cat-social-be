@@ -2,11 +2,12 @@ package repository
 
 import (
 	"cat-social-be/helper"
+	"cat-social-be/model/domain"
 	requestdto "cat-social-be/model/dto/request"
 	responsedto "cat-social-be/model/dto/response"
 	userRepository "cat-social-be/repository/user"
-	"cat-social-be/model/domain"
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -42,10 +43,10 @@ func GetMatches(c *gin.Context, tx *sql.DB) (responsedto.DefaultResponse, error)
 
 func ValidateCreateMatch(c *gin.Context, tx *sql.DB, req requestdto.MatchCreateRequest) (domain.Cat, domain.Cat, string, int, string, error) {
 	loggedUserEmail, _ := helper.ExtractTokenEmail(c)
-	idUser := repository.FindIdByEmail(c, tx, loggedUserEmail.(string))
+	idUser := userRepository.FindIdByEmail(c, tx, loggedUserEmail.(string))
 
 	query := "SELECT id, name, owner_id, sex, is_matched, is_deleted FROM cats WHERE id in ($1, $2)"
-	fmt.Println(query)
+	fmt.Println("ini query validate", query)
 	rows, err := tx.Query(query, req.UserCatId, req.MatchCatId)
 	if err != nil {
 		log.Fatal(err)
@@ -55,47 +56,52 @@ func ValidateCreateMatch(c *gin.Context, tx *sql.DB, req requestdto.MatchCreateR
 	userCat := domain.Cat{}
 	matchCat := domain.Cat{}
 
+	fmt.Println("userCat kosong", userCat)
+	fmt.Println("matchCat kosong", matchCat)
+
 	// var checks []domain.cat
 	for rows.Next() {
 		check := domain.Cat{}
 		err := rows.Scan(
-			&check.Id, 
-			&check.Name, 
-			&check.OwnerId, 
-			&check.Sex, 
-			&check.IsMatched, 
+			&check.Id,
+			&check.Name,
+			&check.OwnerId,
+			&check.Sex,
+			&check.IsMatched,
 			&check.IsDeleted,
 		)
+		fmt.Println("isi check", check)
 		helper.PanicIfError(err)
 		if strconv.Itoa(check.Id) == req.UserCatId {
-			if check.OwnerId != idUser{
+			if check.OwnerId != strconv.Itoa(idUser) {
 				log.Fatal(err)
 				err_message := fmt.Sprintf("cat id %s is not belong to the user %s", check.Id, loggedUserEmail)
-				return userCat, matchCat, "", http.StatusBadRequest, err_message, nil
-			} else{
+				return userCat, matchCat, "", http.StatusBadRequest, err_message, errors.New(err_message)
+			} else {
 				userCat = check
 			}
 		} else {
 			matchCat = check
 		}
 	}
-	if userCat.Sex == matchCat.Sex {
-		log.Fatal(err)
-		err_message := fmt.Sprintf("your cat id %s gender %s is the same with match cat id %s gender %s", userCat.Id, userCat.Sex, matchCat.Id, matchCat.Sex)
-		return userCat, matchCat, "", http.StatusBadRequest, err_message, nil
-	}
-	if (userCat.IsMatched == true) || (matchCat.IsMatched == true) {
-		log.Fatal(err)
-		err_message := fmt.Sprintf("neither cat id %s and %s has been matched", userCat.Id, matchCat.Id)
+	fmt.Println("userCat : ", userCat)
+	if (userCat.IsMatched) || (matchCat.IsMatched) {
+		// log.Fatal(err)
+		err_message := fmt.Sprintf("neither cat id %v and %v has been matched", userCat.Id, matchCat.Id)
 
-		return userCat, matchCat, "", http.StatusBadRequest, err_message, nil
+		return userCat, matchCat, "", http.StatusBadRequest, err_message, errors.New(err_message)
 	}
 	if userCat.OwnerId == matchCat.OwnerId {
-		log.Fatal(err)
-		err_message := fmt.Sprintf("cat id %s and %s is from the same owner", userCat.Id, matchCat.Id)
-		return userCat, matchCat, "", http.StatusBadRequest, err_message, nil
+		// log.Fatal(err)
+		err_message := fmt.Sprintf("cat id %v and %v is from the same owner", userCat.Id, matchCat.Id)
+		return userCat, matchCat, "", http.StatusBadRequest, err_message, errors.New(err_message)
 	}
-
+	if userCat.Sex == matchCat.Sex {
+		// log.Fatal(err)
+		err_message := fmt.Sprintf("your cat id %v gender %v is the same with match cat id %v gender %v", userCat.Id, userCat.Sex, matchCat.Id, matchCat.Sex)
+		return userCat, matchCat, "", http.StatusBadRequest, err_message, errors.New(err_message)
+	}
+	fmt.Println("message method validate : ", req.Message)
 	return userCat, matchCat, req.Message, 0, "", nil
 }
 
@@ -103,22 +109,23 @@ func CreateMatch(c *gin.Context, tx *sql.DB, catUser domain.Cat, matchUser domai
 	//get id user from email token jwt
 	// loggedUserEmail, _ := helper.ExtractTokenEmail(c)
 	// idUser := repository.FindIdByEmail(c, tx, loggedUserEmail.(string))
-	query := "INSERT INTO likes (owner_id, cat_id, liked_owner_id, liked_cat_id, is_approved, message) VALUES ($1, $2, $3, $4, NULL, $5) RETURNING id, created_at"
-
+	query := "INSERT INTO likes (owner_id, cat_id, liked_owner_id, liked_cat_id, approval_status, message) VALUES ($1, $2, $3, $4, 'pending', $5) RETURNING id, created_at"
+	fmt.Println("ini query create match", query)
 	resultMatch := domain.Match{}
 	//run query insert
 	err := tx.QueryRow(
-		query, 
-		catUser.OwnerId, 
-		catUser.Id, 
-		matchUser.OwnerId, 
-		matchUser.Id, 
+		query,
+		catUser.OwnerId,
+		catUser.Id,
+		matchUser.OwnerId,
+		matchUser.Id,
 		matchMessage,
 	).Scan(&resultMatch.Id, &resultMatch.CreatedAt)
 	//handle error
 	if err != nil {
 		log.Fatal(err)
 	}
+	fmt.Println("resultMatch", resultMatch)
 	// defer rows.Close()
 	response := responsedto.DefaultResponse{
 		Message: "success",
@@ -127,6 +134,7 @@ func CreateMatch(c *gin.Context, tx *sql.DB, catUser domain.Cat, matchUser domai
 			CreatedAt: resultMatch.CreatedAt,
 		},
 	}
+	fmt.Println("response create match", response)
 	return response, nil
 }
 
@@ -134,35 +142,34 @@ func ApproveMatch(c *gin.Context, tx *sql.DB, req requestdto.MatchApproveRequest
 	//get id user from email token jwt
 	// loggedUserEmail, _ := helper.ExtractTokenEmail(c)
 	// idUser := repository.FindIdByEmail(c, tx, loggedUserEmail.(string))
-	query_update := "UPDATE likes SET is_approved = 'APPROVED', updated_at = $1 WHERE id = $2 RETURNING id, cat_id, liked_cat_id, created_at, updated_at"
+	query_update := "UPDATE likes SET approval_status = 'approved', updated_at = $1 WHERE id = $2 RETURNING id, cat_id, liked_cat_id, created_at, updated_at"
 	resultMatch := domain.Match{}
 
 	//run query update
 	err := tx.QueryRow(
-		query_update, 
-		time.Now(), 
+		query_update,
+		time.Now(),
 		req.MatchId,
 	).Scan(&resultMatch.Id, &resultMatch.CatId, &resultMatch.LikedCatId, &resultMatch.CreatedAt, &resultMatch.UpdatedAt)
-	
+	fmt.Println("query update ", query_update)
 	//handle error
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	query_delete := "DELETE FROM likes WHERE (cat_id IN ($1, $2) or liked_cat_id IN ($1, $2)) and id <> $3"
-	
+	query_delete := "DELETE FROM likes WHERE ((cat_id = $1 or cat_id = $2) or (liked_cat_id = $1 or liked_cat_id = $2)) and id <> $3"
+
 	//run query delete
-	err_delete := tx.QueryRow(query_delete, resultMatch.CatId, resultMatch.LikedCatId, resultMatch.Id)
+	_, err_delete := tx.Exec(query_delete, resultMatch.CatId, resultMatch.LikedCatId, resultMatch.Id)
 	if err_delete != nil {
 		log.Fatal(err_delete)
 	}
+	fmt.Println("query delete ", query_delete)
 
-	query_update := "UPDATE likes SET is_matched = True WHERE id IN ($1, $2)"
-	err_update := tx.QueryRow(
-		query_update, 
-		resultMatch.CatId,
-		resultMatch.LikedCatId,
-	)
+	fmt.Println("query update cat value : ", resultMatch.CatId, resultMatch.LikedCatId)
+	query_update_cat := "UPDATE cats SET is_matched = true WHERE id = $1 or id = $2"
+	_, err_update := tx.Exec(query_update_cat, resultMatch.CatId, resultMatch.LikedCatId)
+	fmt.Println("query update cat ", query_update_cat)
 	if err_update != nil {
 		log.Fatal(err_update)
 	}
@@ -171,11 +178,11 @@ func ApproveMatch(c *gin.Context, tx *sql.DB, req requestdto.MatchApproveRequest
 	response := responsedto.DefaultResponse{
 		Message: "success",
 		Data: responsedto.MatchApproveResponse{
-			Id:        		resultMatch.Id,
-			CatId:        	resultMatch.CatId,
-			LikedCatId:     resultMatch.LikedCatId,
-			CreatedAt: 		resultMatch.CreatedAt,
-			UpdatedAt:		resultMatch.UpdatedAt,
+			Id:         resultMatch.Id,
+			CatId:      resultMatch.CatId,
+			LikedCatId: resultMatch.LikedCatId,
+			CreatedAt:  resultMatch.CreatedAt,
+			UpdatedAt:  resultMatch.UpdatedAt,
 		},
 	}
 	return response, nil
