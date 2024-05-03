@@ -6,6 +6,7 @@ import (
 	requestdto "cat-social-be/model/dto/request"
 	responsedto "cat-social-be/model/dto/response"
 	"database/sql"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -21,7 +22,10 @@ func Login(c *gin.Context, tx *sql.DB, user requestdto.UserLoginRequest) {
 	var err error
 	query := "SELECT * FROM users WHERE email = $1"
 	resultUser := domain.User{}
-	tx.QueryRow(query, user.Email).Scan(&resultUser.Id, &resultUser.Email, &resultUser.Name, &resultUser.Password)
+	errorQuery := tx.QueryRow(query, user.Email).Scan(&resultUser.Id, &resultUser.Email, &resultUser.Name, &resultUser.Password)
+	if errorQuery != nil {
+		log.Fatal(errorQuery)
+	}
 
 	err = VerifyPassword(user.Password, resultUser.Password)
 	if err != nil && err == bcrypt.ErrMismatchedHashAndPassword {
@@ -32,7 +36,7 @@ func Login(c *gin.Context, tx *sql.DB, user requestdto.UserLoginRequest) {
 		return
 	}
 
-	token, _ := helper.GenerateToken("USER_CAT")
+	token, _ := helper.GenerateToken(user.Email)
 	response := responsedto.DefaultResponse{
 		Message: "User logged successfully",
 		Data: responsedto.AuthResponse{
@@ -45,10 +49,13 @@ func Login(c *gin.Context, tx *sql.DB, user requestdto.UserLoginRequest) {
 }
 
 func Register(c *gin.Context, tx *sql.DB, user requestdto.UserCreateRequest) (responsedto.DefaultResponse, error) {
-	query := "INSERT INTO users (email, name, password) VALUES ($1,$2,$3) RETURNING id"
+	query := "INSERT INTO users (email, name, password_hash) VALUES ($1,$2,$3) RETURNING email, name"
 	resultUser := domain.User{}
-	tx.QueryRow(query, user.Email, user.Name, user.Password).Scan(&resultUser.Id, &resultUser.Email, &resultUser.Name, &resultUser.Password)
-	token, _ := helper.GenerateToken("USER_CAT")
+	errorQuery := tx.QueryRow(query, user.Email, user.Name, user.Password).Scan(&resultUser.Email, &resultUser.Name)
+	if errorQuery != nil {
+		log.Fatal(errorQuery)
+	}
+	token, _ := helper.GenerateToken(user.Email)
 	response := responsedto.DefaultResponse{
 		Message: "User registered successfully",
 		Data: responsedto.AuthResponse{
@@ -65,4 +72,11 @@ func IsEmailExist(c *gin.Context, tx *sql.DB, email string) bool {
 	resultUser := domain.User{}
 	tx.QueryRow(query, email).Scan(&resultUser.Id, &resultUser.Email, &resultUser.Name, &resultUser.Password)
 	return resultUser.Email != ""
+}
+
+func FindIdByEmail(c *gin.Context, tx *sql.DB, email string) int {
+	query := "SELECT id FROM users WHERE email = $1"
+	resultUser := domain.User{}
+	tx.QueryRow(query, email).Scan(&resultUser.Id)
+	return resultUser.Id
 }
