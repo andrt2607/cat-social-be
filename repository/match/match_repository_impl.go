@@ -127,99 +127,135 @@ func CreateMatch(c *gin.Context, tx *sql.DB, catUser domain.Cat, matchUser domai
 	return response, nil
 }
 
-func ApproveMatch(c *gin.Context, tx *sql.DB, req requestdto.MatchApproveRequest) (responsedto.DefaultResponse, error) {
+func ApproveMatch(c *gin.Context, tx *sql.DB, req requestdto.MatchApproveRequest) (responsedto.DefaultResponse, int) {
 	//get id user from email token jwt
-	// loggedUserEmail, _ := helper.ExtractTokenEmail(c)
-	// idUser := repository.FindIdByEmail(c, tx, loggedUserEmail.(string))
-	query_update := "UPDATE likes SET approval_status = 'approved', updated_at = $1 WHERE id = $2 RETURNING id, cat_id, liked_cat_id, created_at, updated_at"
-	resultMatch := domain.Match{}
+	loggedUserEmail, _ := helper.ExtractTokenEmail(c)
+	idUser := userRepository.FindIdByEmail(c, tx, loggedUserEmail.(string))
 
-	//run query update
-	err := tx.QueryRow(
-		query_update,
-		time.Now(),
-		req.MatchId,
-	).Scan(&resultMatch.Id, &resultMatch.CatId, &resultMatch.LikedCatId, &resultMatch.CreatedAt, &resultMatch.UpdatedAt)
-	//handle error
-	if err != nil {
-		log.Fatal(err)
+	//check match id exist
+	queryCheckMatchIdExist := "SELECT id, approval_status FROM likes WHERE id = $1 and LikedOwnerId = $2"
+	resultCheckMatch := domain.Match{}
+	errCheckMatchIdExist := tx.QueryRow(queryCheckMatchIdExist, c.Param("id"), idUser).Scan(&resultCheckMatch.Id, &resultCheckMatch.ApprovalStatus)
+	if errCheckMatchIdExist != nil {
+		err_message := fmt.Sprintf("matchId %v is not found", c.Param("id"))
+		response := responsedto.DefaultResponse{
+			Message: err_message,
+			Data:    nil,
+		}
+		return response, http.StatusNotFound
 	}
 
-	query_delete := "DELETE FROM likes WHERE ((cat_id = $1 or cat_id = $2) or (liked_cat_id = $1 or liked_cat_id = $2)) and id <> $3"
+	if resultCheckMatch.ApprovalStatus == "pending" {
+		query_update := "UPDATE likes SET approval_status = 'approved', updated_at = $1 WHERE id = $2 RETURNING id, cat_id, liked_cat_id, created_at, updated_at"
+		resultMatch := domain.Match{}
 
-	//run query delete
-	_, err_delete := tx.Exec(query_delete, resultMatch.CatId, resultMatch.LikedCatId, resultMatch.Id)
-	if err_delete != nil {
-		log.Fatal(err_delete)
-	}
+		//run query update
+		err := tx.QueryRow(
+			query_update,
+			time.Now(),
+			req.MatchId,
+		).Scan(&resultMatch.Id, &resultMatch.CatId, &resultMatch.LikedCatId, &resultMatch.CreatedAt, &resultMatch.UpdatedAt)
+		//handle error
+		if err != nil {
+			log.Fatal(err)
+		}
 
-	query_update_cat := "UPDATE cats SET is_matched = true WHERE id = $1 or id = $2"
-	_, err_update := tx.Exec(query_update_cat, resultMatch.CatId, resultMatch.LikedCatId)
-	if err_update != nil {
-		log.Fatal(err_update)
-	}
-	// defer rows.Close()
+		query_delete := "DELETE FROM likes WHERE ((cat_id = $1 or cat_id = $2) or (liked_cat_id = $1 or liked_cat_id = $2)) and id <> $3"
 
-	response := responsedto.DefaultResponse{
-		Message: "success",
-		Data: responsedto.MatchApproveResponse{
-			Id:         resultMatch.Id,
-			CatId:      resultMatch.CatId,
-			LikedCatId: resultMatch.LikedCatId,
-			CreatedAt:  resultMatch.CreatedAt,
-			UpdatedAt:  resultMatch.UpdatedAt,
-		},
+		//run query delete
+		_, err_delete := tx.Exec(query_delete, resultMatch.CatId, resultMatch.LikedCatId, resultMatch.Id)
+		if err_delete != nil {
+			log.Fatal(err_delete)
+		}
+
+		query_update_cat := "UPDATE cats SET is_matched = true WHERE id = $1 or id = $2"
+		_, err_update := tx.Exec(query_update_cat, resultMatch.CatId, resultMatch.LikedCatId)
+		if err_update != nil {
+			log.Fatal(err_update)
+		}
+		// defer rows.Close()
+
+		response := responsedto.DefaultResponse{
+			Message: "success",
+			Data: responsedto.MatchApproveResponse{
+				Id:         resultMatch.Id,
+				CatId:      resultMatch.CatId,
+				LikedCatId: resultMatch.LikedCatId,
+				CreatedAt:  resultMatch.CreatedAt,
+				UpdatedAt:  resultMatch.UpdatedAt,
+			},
+		}
+		return response, http.StatusCreated
+	} else {
+		err_message := fmt.Sprintf("matchId %v is already approved / rejected", c.Param("id"))
+		response := responsedto.DefaultResponse{
+			Message: err_message,
+			Data:    nil,
+		}
+		return response, http.StatusBadRequest
 	}
-	return response, nil
 }
 
 func RejectMatch(c *gin.Context, tx *sql.DB, req requestdto.MatchApproveRequest) (responsedto.DefaultResponse, int, error) {
+	loggedUserEmail, _ := helper.ExtractTokenEmail(c)
+	idUser := userRepository.FindIdByEmail(c, tx, loggedUserEmail.(string))
+
 	//check match id exist
-	queryCheckMatchIdExist := "SELECT id FROM likes WHERE id = $1"
-	var id int
-	errCheckMatchIdExist := tx.QueryRow(queryCheckMatchIdExist, c.Param("id")).Scan(&id)
+	queryCheckMatchIdExist := "SELECT id, approval_status FROM likes WHERE id = $1 and LikedOwnerId = $2"
+	resultCheckMatch := domain.Match{}
+	errCheckMatchIdExist := tx.QueryRow(queryCheckMatchIdExist, c.Param("id"), idUser).Scan(&resultCheckMatch.Id, &resultCheckMatch.ApprovalStatus)
 	if errCheckMatchIdExist != nil {
-		err_message := "matchId is not found"
+		err_message := fmt.Sprintf("matchId %v is not found", c.Param("id"))
 		response := responsedto.DefaultResponse{
-			Message: "failed reject match",
-			Data:    err_message,
+			Message: err_message,
+			Data:    nil,
 		}
-		return response, http.StatusNotFound, nil
-	}
-	query_update := "UPDATE likes SET approval_status = 'rejected', updated_at = $1 WHERE id = $2 RETURNING id, cat_id, liked_cat_id, created_at, updated_at"
-	resultMatch := domain.Match{}
-
-	//run query update
-	err := tx.QueryRow(
-		query_update,
-		time.Now(),
-		req.MatchId,
-	).Scan(&resultMatch.Id, &resultMatch.CatId, &resultMatch.LikedCatId, &resultMatch.CreatedAt, &resultMatch.UpdatedAt)
-	//handle error
-	if err != nil {
-		log.Fatal(err)
+		return response, http.StatusNotFound, errors.New(err_message)
 	}
 
-	response := responsedto.DefaultResponse{
-		Message: "success",
-		Data: responsedto.MatchApproveResponse{
-			Id:         resultMatch.Id,
-			CatId:      resultMatch.CatId,
-			LikedCatId: resultMatch.LikedCatId,
-			CreatedAt:  resultMatch.CreatedAt,
-			UpdatedAt:  resultMatch.UpdatedAt,
-		},
+	if resultCheckMatch.ApprovalStatus == "pending" {
+		query_update := "UPDATE likes SET approval_status = 'rejected', updated_at = $1 WHERE id = $2 RETURNING id, cat_id, liked_cat_id, created_at, updated_at"
+		resultMatch := domain.Match{}
+
+		//run query update
+		err := tx.QueryRow(
+			query_update,
+			time.Now(),
+			req.MatchId,
+		).Scan(&resultMatch.Id, &resultMatch.CatId, &resultMatch.LikedCatId, &resultMatch.CreatedAt, &resultMatch.UpdatedAt)
+		//handle error
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		response := responsedto.DefaultResponse{
+			Message: "success",
+			Data: responsedto.MatchApproveResponse{
+				Id:         resultMatch.Id,
+				CatId:      resultMatch.CatId,
+				LikedCatId: resultMatch.LikedCatId,
+				CreatedAt:  resultMatch.CreatedAt,
+				UpdatedAt:  resultMatch.UpdatedAt,
+			},
+		}
+		return response, http.StatusOK, nil
+	} else {
+		err_message := fmt.Sprintf("matchId %v is no longer valid", c.Param("id"))
+		response := responsedto.DefaultResponse{
+			Message: err_message,
+			Data:    nil,
+		}
+		return response, http.StatusBadRequest, errors.New(err_message)
 	}
-	return response, http.StatusOK, nil
 }
 
 func DeleteMatch(c *gin.Context, tx *sql.DB) {
 	//check match matchId is already approved / reject
-	queryCheckMatchIdExist := "SELECT id FROM likes WHERE id = $1"
-	var id int
-	errCheckMatchIdExist := tx.QueryRow(queryCheckMatchIdExist, c.Param("id")).Scan(&id)
+	queryCheckMatchIdExist := "SELECT id, approval_status, owner_id FROM likes WHERE id = $1"
+	resultCheckMatch := domain.Match{}
+	errCheckMatchIdExist := tx.QueryRow(queryCheckMatchIdExist, c.Param("id")).Scan(&resultCheckMatch.Id, &resultCheckMatch.ApprovalStatus, &resultCheckMatch.OwnerId)
 	if errCheckMatchIdExist != nil {
-		err_message := "matchId is not found"
+		err_message := fmt.Sprintf("matchId %v is not found", c.Param("id"))
 		response := responsedto.DefaultResponse{
 			Message: err_message,
 			Data:    nil,
@@ -227,48 +263,57 @@ func DeleteMatch(c *gin.Context, tx *sql.DB) {
 		c.JSON(http.StatusNotFound, response)
 		return
 	}
-	//check match matchId is already approved / reject
-	queryCheckIsAlreadyApproved := "SELECT approval_status FROM likes WHERE id = $1"
-	var approvalStatus string
-	errCheckIsAlreadyApproved := tx.QueryRow(queryCheckIsAlreadyApproved, c.Param("id")).Scan(&approvalStatus)
-	if errCheckIsAlreadyApproved != nil {
-		log.Fatal(errCheckIsAlreadyApproved)
-	}
-	if approvalStatus == "approved" || approvalStatus == "rejected" {
-		response := responsedto.DefaultResponse{
-			Message: "failed delete match",
-			Data:    "matchId is already approved / reject",
+
+	// //check match matchId is already approved / reject
+	// queryCheckIsAlreadyApproved := "SELECT approval_status FROM likes WHERE id = $1"
+	// var approvalStatus string
+	// errCheckIsAlreadyApproved := tx.QueryRow(queryCheckIsAlreadyApproved, c.Param("id")).Scan(&approvalStatus)
+	// if errCheckIsAlreadyApproved != nil {
+	// 	log.Fatal(errCheckIsAlreadyApproved)
+	// }
+
+	// if approvalStatus == "approved" || approvalStatus == "rejected" {
+	// 	err_message := fmt.Sprintf("matchId %v is already approved / reject", c.Param("id"))
+	// 	response := responsedto.DefaultResponse{
+	// 		Message: err_message,
+	// 		Data:    nil,
+	// 	}
+	// 	c.JSON(http.StatusBadRequest, response)
+	// 	return
+	// }
+	if resultCheckMatch.ApprovalStatus == "pending" {
+		loggedUserEmail, _ := helper.ExtractTokenEmail(c)
+		idUser := userRepository.FindIdByEmail(c, tx, loggedUserEmail.(string))
+		// validasi logged user not owner id cat
+		if strconv.Itoa(idUser) == resultCheckMatch.OwnerId {
+			//query delete match
+			query := "DELETE FROM likes WHERE id = $1"
+			_, errQueryDelete := tx.Exec(query, c.Param("id"))
+			if errQueryDelete != nil {
+				log.Fatal(errQueryDelete)
+			}
+			response := responsedto.DefaultResponse{
+				Message: "successfully remove a cat match request",
+				Data:    nil,
+			}
+			c.JSON(http.StatusOK, response)
+			return
+		} else {
+			err_message := "you are not authorized to delete this match requested by other user"
+			response := responsedto.DefaultResponse{
+				Message: err_message,
+				Data:    nil,
+			}
+			c.JSON(http.StatusUnauthorized, response)
+			return
 		}
-		c.JSON(http.StatusBadRequest, response)
-		return
-	}
-	loggedUserEmail, _ := helper.ExtractTokenEmail(c)
-	idUser := userRepository.FindIdByEmail(c, tx, loggedUserEmail.(string))
-	queryGetIssuerId := "SELECT owner_id FROM likes WHERE id = $1"
-	var ownerId int
-	errGetIssuer := tx.QueryRow(queryGetIssuerId, c.Param("id")).Scan(&ownerId)
-	if errGetIssuer != nil {
-		log.Fatal(errGetIssuer)
-	}
-	// validasi logged user not owner id cat
-	if idUser != ownerId {
-		err_message := "you are not authorized to delete this match"
+	} else {
+		err_message := fmt.Sprintf("matchId %v is already approved / rejected", c.Param("id"))
 		response := responsedto.DefaultResponse{
 			Message: err_message,
 			Data:    nil,
 		}
-		c.JSON(http.StatusUnauthorized, response)
+		c.JSON(http.StatusBadRequest, response)
 		return
 	}
-	//query delete match
-	query := "DELETE FROM likes WHERE id = $1"
-	_, errQueryDelete := tx.Exec(query, c.Param("id"))
-	if errQueryDelete != nil {
-		log.Fatal(errQueryDelete)
-	}
-	response := responsedto.DefaultResponse{
-		Message: "success delete match",
-		Data:    nil,
-	}
-	c.JSON(http.StatusOK, response)
 }

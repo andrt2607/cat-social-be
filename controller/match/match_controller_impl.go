@@ -12,7 +12,6 @@ import (
 )
 
 func handleInternalServerError(c *gin.Context, err error) {
-	fmt.Println("Internal Server Error:", err)
 	// Mengirim respons dengan status HTTP 500 (Internal Server Error)
 	c.JSON(http.StatusInternalServerError, gin.H{
 		"error": "Internal Server Error",
@@ -42,7 +41,6 @@ func CreateMatch(c *gin.Context) {
 		})
 		return
 	}
-	fmt.Println("message : ", matchMessage)
 	//call repository
 	matchCreateResponse, _ := matchRepository.CreateMatch(c, db, catUser, matchUser, matchMessage)
 	c.JSON(http.StatusCreated, matchCreateResponse)
@@ -73,8 +71,8 @@ func ApproveMatch(c *gin.Context) {
 		return
 	}
 	//call repository
-	matchApproveResponse, _ := matchRepository.ApproveMatch(c, db, matchApproveRequest)
-	c.JSON(http.StatusCreated, matchApproveResponse)
+	responseMessage, responseCode := matchRepository.ApproveMatch(c, db, matchApproveRequest)
+	c.JSON(responseCode, responseMessage)
 }
 
 func DeleteMatch(c *gin.Context) {
