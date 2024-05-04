@@ -29,7 +29,7 @@ func SetupRouter(db *sql.DB) *gin.Engine {
 	catMiddlewareRoutes.GET("/match", matchController.GetMatches)
 	catMiddlewareRoutes.POST("/match/approve", matchController.ApproveMatch)
 	// catMiddlewareRoutes.POST("/match/reject", matchController.RejectMatch)
-	// catMiddlewareRoutes.DELETE("/match/:id", matchController.DeleteMatch)
+	catMiddlewareRoutes.DELETE("/match/:id", matchController.DeleteMatch)
 	//user
 	r.POST("/v1/user/login", userController.Login)
 	r.POST("/v1/user/register", userController.Register)

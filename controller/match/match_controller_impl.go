@@ -89,3 +89,13 @@ func ApproveMatch(c *gin.Context) {
 	fmt.Println("masuk sini 4")
 	c.JSON(http.StatusCreated, matchApproveResponse)
 }
+
+func DeleteMatch(c *gin.Context) {
+	defer func() {
+		if err := recover(); err != nil {
+			handleInternalServerError(c, fmt.Errorf("%v", err))
+		}
+	}()
+	db := c.MustGet("db").(*sql.DB)
+	matchRepository.DeleteMatch(c, db)
+}

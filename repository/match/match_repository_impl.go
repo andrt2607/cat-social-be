@@ -187,3 +187,62 @@ func ApproveMatch(c *gin.Context, tx *sql.DB, req requestdto.MatchApproveRequest
 	}
 	return response, nil
 }
+
+func DeleteMatch(c *gin.Context, tx *sql.DB) {
+	//check match matchId is already approved / reject
+	queryCheckMatchIdExist := "SELECT id FROM likes WHERE id = $1"
+	var id int
+	errCheckMatchIdExist := tx.QueryRow(queryCheckMatchIdExist, c.Param("id")).Scan(&id)
+	if errCheckMatchIdExist != nil {
+		err_message := "matchId is not found"
+		response := responsedto.DefaultResponse{
+			Message: err_message,
+			Data:    nil,
+		}
+		c.JSON(http.StatusNotFound, response)
+	}
+	//check match matchId is already approved / reject
+	queryCheckIsAlreadyApproved := "SELECT approval_status FROM likes WHERE id = $1"
+	var approvalStatus string
+	errCheckIsAlreadyApproved := tx.QueryRow(queryCheckIsAlreadyApproved, c.Param("id")).Scan(&approvalStatus)
+	if errCheckIsAlreadyApproved != nil {
+		log.Fatal(errCheckIsAlreadyApproved)
+	}
+	if approvalStatus == "approved" || approvalStatus == "rejected" {
+		response := responsedto.DefaultResponse{
+			Message: "failed delete match",
+			Data:    "matchId is already approved / reject",
+		}
+		c.JSON(http.StatusBadRequest, response)
+		return
+	}
+	loggedUserEmail, _ := helper.ExtractTokenEmail(c)
+	idUser := userRepository.FindIdByEmail(c, tx, loggedUserEmail.(string))
+	queryGetIssuerId := "SELECT owner_id FROM likes WHERE id = $1"
+	var ownerId int
+	errGetIssuer := tx.QueryRow(queryGetIssuerId, c.Param("id")).Scan(&ownerId)
+	if errGetIssuer != nil {
+		log.Fatal(errGetIssuer)
+	}
+	// validasi logged user not owner id cat
+	if idUser != ownerId {
+		err_message := "you are not authorized to delete this match"
+		response := responsedto.DefaultResponse{
+			Message: err_message,
+			Data:    nil,
+		}
+		c.JSON(http.StatusUnauthorized, response)
+		return
+	}
+	//query delete match
+	query := "DELETE FROM likes WHERE id = $1"
+	_, errQueryDelete := tx.Exec(query, c.Param("id"))
+	if errQueryDelete != nil {
+		log.Fatal(errQueryDelete)
+	}
+	response := responsedto.DefaultResponse{
+		Message: "success delete match",
+		Data:    nil,
+	}
+	c.JSON(http.StatusOK, response)
+}
