@@ -40,13 +40,18 @@ func CreateCat(c *gin.Context) {
 	catCreateRequest := requestdto.CatCreateRequest{}
 	c.ShouldBindJSON(&catCreateRequest)
 	//validasi input
+	fmt.Println("masuk sini validate createcat")
+	fmt.Println(catCreateRequest)
 	if err := helper.ValidateStruct(&catCreateRequest); err != nil {
+		fmt.Println("masuk sini validate createcat error")
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "message": "request doesn’t pass validation"})
 		return
 	}
 	//call repository
-	catCreateResponse, _ := catRepository.CreateCat(c, db, catCreateRequest)
-	c.JSON(http.StatusCreated, catCreateResponse)
+	fmt.Println("masuk sini createcat")
+	catRepository.CreateCat(c, db, catCreateRequest)
+	// catCreateResponse, _ := catRepository.CreateCat(c, db, catCreateRequest)
+	// c.JSON(http.StatusCreated, catCreateResponse)
 }
 
 func UpdateCat(c *gin.Context) {
@@ -74,7 +79,7 @@ func UpdateCat(c *gin.Context) {
 	}
 	//call repository
 	catCreateResponse, _ := catRepository.UpdateCat(c, db, catCreateRequest)
-	c.JSON(http.StatusCreated, catCreateResponse)
+	c.JSON(http.StatusOK, catCreateResponse)
 }
 
 func DeleteCat(c *gin.Context) {
@@ -89,7 +94,7 @@ func DeleteCat(c *gin.Context) {
 	//validasi id cat
 	_, err := catRepository.FindCatById(c, db)
 	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{
+		c.JSON(http.StatusOK, gin.H{
 			"error": "Id cat is not found",
 		})
 		return

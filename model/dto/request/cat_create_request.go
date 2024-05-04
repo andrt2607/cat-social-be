@@ -23,10 +23,10 @@ const (
 )
 
 type CatCreateRequest struct {
-	Name        string  `validate:"required,min=1,max=30" json:"name"`
-	Race        CatRace `validate:"required" json:"race"`
-	Sex         SexType `validate:"required" json:"sex"`
-	AgeInMonth  int     `validate:"required,min=1,max=120082" json:"ageInMonth"`
-	Description string  `validate:"required,min=1,max=200" json:"description"`
-	ImageUrls   string  `validate:"required,min=1" json:"imageUrls"`
+	Name        string   `validate:"required,min=1,max=200" json:"name"`
+	Race        CatRace  `validate:"required" json:"race"`
+	Sex         SexType  `validate:"required" json:"sex"`
+	AgeInMonth  int      `validate:"required,min=1,max=120082" json:"ageInMonth"`
+	Description string   `validate:"required,min=1,max=200" json:"description"`
+	ImageUrls   []string `validate:"required" json:"imageUrls"`
 }

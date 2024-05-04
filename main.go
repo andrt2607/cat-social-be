@@ -20,5 +20,5 @@ func main() {
 	}
 	db := app.NewDB()
 	r := app.SetupRouter(db)
-	r.Run(":3000")
+	r.Run(":8080")
 }

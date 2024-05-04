@@ -66,7 +66,7 @@ func ValidateCreateMatch(c *gin.Context, tx *sql.DB, req requestdto.MatchCreateR
 			&check.IsDeleted,
 		)
 		helper.PanicIfError(err)
-		if strconv.Itoa(check.Id) == req.UserCatId {
+		if check.Id == req.UserCatId {
 			if check.OwnerId != strconv.Itoa(idUser) {
 				log.Fatal(err)
 				err_message := fmt.Sprintf("cat id %s is not belong to the user %s", check.Id, loggedUserEmail)
@@ -133,7 +133,7 @@ func ApproveMatch(c *gin.Context, tx *sql.DB, req requestdto.MatchApproveRequest
 	idUser := userRepository.FindIdByEmail(c, tx, loggedUserEmail.(string))
 
 	//check match id exist
-	queryCheckMatchIdExist := "SELECT id, approval_status FROM likes WHERE id = $1 and LikedOwnerId = $2"
+	queryCheckMatchIdExist := "SELECT id, approval_status FROM likes WHERE id = $1 and liked_owner_id = $2"
 	resultCheckMatch := domain.Match{}
 	errCheckMatchIdExist := tx.QueryRow(queryCheckMatchIdExist, c.Param("id"), idUser).Scan(&resultCheckMatch.Id, &resultCheckMatch.ApprovalStatus)
 	if errCheckMatchIdExist != nil {
@@ -201,7 +201,7 @@ func RejectMatch(c *gin.Context, tx *sql.DB, req requestdto.MatchApproveRequest)
 	idUser := userRepository.FindIdByEmail(c, tx, loggedUserEmail.(string))
 
 	//check match id exist
-	queryCheckMatchIdExist := "SELECT id, approval_status FROM likes WHERE id = $1 and LikedOwnerId = $2"
+	queryCheckMatchIdExist := "SELECT id, approval_status FROM likes WHERE id = $1 and liked_owner_id = $2"
 	resultCheckMatch := domain.Match{}
 	errCheckMatchIdExist := tx.QueryRow(queryCheckMatchIdExist, c.Param("id"), idUser).Scan(&resultCheckMatch.Id, &resultCheckMatch.ApprovalStatus)
 	if errCheckMatchIdExist != nil {
