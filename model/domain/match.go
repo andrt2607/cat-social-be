@@ -5,7 +5,7 @@ import (
 )
 
 type Match struct {
-	Id          	int
+	Id          	string
 	OwnerId      	string
 	CatId        	string
 	LikedOwnerId 	string

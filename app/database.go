@@ -18,7 +18,7 @@ func NewDB() *sql.DB {
 	fmt.Println(username, password, host, port, database)
 	// connStr := "postgres://" + username + ":" + password + "@" + host + ":" + port + "/" + database + "?sslmode=disable"
 	// connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", username, password, host, port, database)
-	connStr := "postgres://postgres:admin@localhost:5432/db_cat_social?sslmode=disable"
+	connStr := "postgres://postgres:rahasia@localhost:5432/db_cat_social?sslmode=disable"
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		panic(err)
