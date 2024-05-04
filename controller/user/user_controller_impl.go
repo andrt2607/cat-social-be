@@ -55,14 +55,6 @@ func Register(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	// userToken, _ := helper.ExtractTokenEmail(c)
-	// fmt.Println("userToken", userToken)
-	// if userToken != "USER_CAT" {
-	// 	c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
-	// 		"error": "You are unauthorized to access this resource, this resource for USER_CAT user",
-	// 	})
-	// 	return
-	// }
 	if repository.IsEmailExist(c, db, userCreateRequest.Email) {
 		c.JSON(http.StatusConflict, gin.H{
 			"error": "Email already exist",

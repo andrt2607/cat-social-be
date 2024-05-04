@@ -19,21 +19,6 @@ func main() {
 		}
 	}
 	db := app.NewDB()
-	// validate := validator.New()
-	// userRepository := repository.NewUserRepository()
-	// userService := service.NewUserService(userRepository, db, validate)
-	// userController := controller.NewUserController(userService)
-	// router := app.NewRouter(userController)
-
-	// server := http.Server{
-	// 	Addr:    "localhost:3000",
-	// 	Handler: router,
-	// }
-
-	// // err := server.ListenAndServe()
-	// fmt.Print("Server is running on port 3000")
-	// err := server.ListenAndServe()
-	// helper.PanicIfError(err)
 	r := app.SetupRouter(db)
 	r.Run(":3000")
 }
