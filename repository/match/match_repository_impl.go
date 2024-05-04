@@ -249,9 +249,9 @@ func DeleteMatch(c *gin.Context, tx *sql.DB) {
 	loggedUserEmail, _ := helper.ExtractTokenEmail(c)
 	idUser := userRepository.FindIdByEmail(c, tx, loggedUserEmail.(string))
 
-	queryCheckMatchIdExist := "SELECT id, approval_status FROM likes WHERE id = $1 and owner_id = $2"
+	queryCheckMatchIdExist := "SELECT approval_status FROM likes WHERE id = $1 and owner_id = $2"
 	resultCheckMatch := domain.Match{}
-	errCheckMatchIdExist := tx.QueryRow(queryCheckMatchIdExist, c.Param("id"), idUser).Scan(&resultCheckMatch.Id, &resultCheckMatch.ApprovalStatus)
+	errCheckMatchIdExist := tx.QueryRow(queryCheckMatchIdExist, c.Param("id"), idUser).Scan(&resultCheckMatch.ApprovalStatus)
 	if errCheckMatchIdExist != nil {
 		err_message := fmt.Sprintf("matchId %v is not found", c.Param("id"))
 		response := responsedto.DefaultResponse{
