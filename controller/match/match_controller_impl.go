@@ -20,13 +20,11 @@ func handleInternalServerError(c *gin.Context, err error) {
 }
 
 func CreateMatch(c *gin.Context) {
-	fmt.Println("masuk sini")
 	defer func() {
 		if err := recover(); err != nil {
 			handleInternalServerError(c, fmt.Errorf("%v", err))
 		}
 	}()
-	fmt.Println("masuk sini 2")
 	db := c.MustGet("db").(*sql.DB)
 	matchCreateRequest := requestdto.MatchCreateRequest{}
 	c.ShouldBindJSON(&matchCreateRequest)
@@ -74,19 +72,8 @@ func ApproveMatch(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	fmt.Println("masuk sini 3")
-	//validasi Match Request
-	// _, err_code, err_message := matchRepository.ValidateApproveMatch(c, db, matchApproveRequest)
-	// if err_code != nil {
-	// 	c.JSON(err_code, gin.H{
-	// 		"error": err_message,
-	// 	})
-	// 	return
-	// }
-
 	//call repository
 	matchApproveResponse, _ := matchRepository.ApproveMatch(c, db, matchApproveRequest)
-	fmt.Println("masuk sini 4")
 	c.JSON(http.StatusCreated, matchApproveResponse)
 }
 
@@ -98,4 +85,23 @@ func DeleteMatch(c *gin.Context) {
 	}()
 	db := c.MustGet("db").(*sql.DB)
 	matchRepository.DeleteMatch(c, db)
+}
+
+func RejectMatch(c *gin.Context) {
+	defer func() {
+		if err := recover(); err != nil {
+			handleInternalServerError(c, fmt.Errorf("%v", err))
+		}
+	}()
+	db := c.MustGet("db").(*sql.DB)
+	matchApproveRequest := requestdto.MatchApproveRequest{}
+	c.ShouldBindJSON(&matchApproveRequest)
+	//validasi input
+	if err := helper.ValidateStruct(&matchApproveRequest); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	//call repository
+	matchApproveResponse, statusCode, _ := matchRepository.RejectMatch(c, db, matchApproveRequest)
+	c.JSON(statusCode, matchApproveResponse)
 }

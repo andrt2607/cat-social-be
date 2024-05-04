@@ -90,7 +90,6 @@ func GetCats(c *gin.Context, tx *sql.DB) (responsedto.DefaultResponse, error) {
 	}
 	//concat query with filter
 	queryWithFilter := query + filterGetString
-	fmt.Println("queryWithFilter", queryWithFilter)
 	//run query select
 	rows, errorQuery := tx.Query(queryWithFilter)
 	if errorQuery != nil {
@@ -124,7 +123,6 @@ func UpdateCat(c *gin.Context, tx *sql.DB, user requestdto.CatCreateRequest) (re
 	//get id user from email token jwt
 	loggedUserEmail, _ := helper.ExtractTokenEmail(c)
 	idUser := repository.FindIdByEmail(c, tx, loggedUserEmail.(string))
-	fmt.Println("idUser", idUser)
 	//query update
 	query := "UPDATE cats SET name = $1, race = $2, sex = $3, age_in_month = $4, description = $5, image_urls = $6, owner_id = $7 , updated_at = $9 WHERE id = $8 RETURNING id, created_at"
 	resultCat := domain.Cat{}
@@ -134,7 +132,6 @@ func UpdateCat(c *gin.Context, tx *sql.DB, user requestdto.CatCreateRequest) (re
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("user hasil update : ", user)
 	response := responsedto.DefaultResponse{
 		Message: "successfully update cat",
 		Data: responsedto.CatCreateResponse{
