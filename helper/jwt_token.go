@@ -32,7 +32,7 @@ func GenerateToken(emailUser string) (string, error) {
 func TokenValid(c *gin.Context) error {
 
 	tokenString := ExtractToken(c)
-	fmt.Println("tokenString tokenValid", tokenString)
+	//fmt.Println("tokenString tokenValid", tokenString)
 	_, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -47,13 +47,13 @@ func TokenValid(c *gin.Context) error {
 
 func ExtractToken(c *gin.Context) string {
 	token := c.Request.Header.Get("token")
-	fmt.Println("token ExtractToken", token)
+	//fmt.Println("token ExtractToken", token)
 	if token != "" {
 		return token
 	}
 
 	bearerToken := c.Request.Header.Get("Authorization")
-	fmt.Println("bearerToken ExtractToken", bearerToken)
+	//fmt.Println("bearerToken ExtractToken", bearerToken)
 	if len(strings.Split(bearerToken, " ")) == 2 {
 		return strings.Split(bearerToken, " ")[1]
 	}
@@ -86,7 +86,7 @@ func ExtractTokenID(c *gin.Context) (uint, error) {
 func ExtractTokenEmail(c *gin.Context) (interface{}, error) {
 
 	tokenString := ExtractToken(c)
-	fmt.Println("tokenString ExtractTokenEmail", tokenString)
+	//fmt.Println("tokenString ExtractTokenEmail", tokenString)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
@@ -103,7 +103,7 @@ func ExtractTokenEmail(c *gin.Context) (interface{}, error) {
 		if err != nil {
 			return "error", err
 		}
-		fmt.Println("stringRole", stringRole)
+		//fmt.Println("stringRole", stringRole)
 		return stringRole, nil
 	}
 	return "error", nil

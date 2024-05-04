@@ -5,22 +5,22 @@ import (
 )
 
 type Cat struct {
-	Id          int
+	Id          string
 	Name        string
 	Race        string
 	Sex         string
 	AgeInMonth  string
 	Description string
 	ImageUrls   string
-	OwnerId  	string
+	OwnerId     string
 	IsMatched   bool
 	IsDeleted   bool
-	CreatedAt   time.Time
+	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time
 }
 
 type CatCheck struct {
 	MatchCat Cat
-	UserCat Cat
+	UserCat  Cat
 	Response string
 }
