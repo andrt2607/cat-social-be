@@ -1,8 +1,6 @@
 package responsedto
 
-import "time"
-
 type MatchCreateResponse struct {
-	Id        int       `json:"id"`
-	CreatedAt time.Time `json:"createdAt"`
+	Id        string `json:"id"`
+	CreatedAt string `json:"createdAt"`
 }
