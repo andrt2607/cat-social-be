@@ -285,7 +285,7 @@ func DeleteMatch(c *gin.Context, tx *sql.DB) {
 		loggedUserEmail, _ := helper.ExtractTokenEmail(c)
 		idUser := userRepository.FindIdByEmail(c, tx, loggedUserEmail.(string))
 		// validasi logged user not owner id cat
-		if idUser == resultCheckMatch.OwnerId {
+		if strconv.Itoa(idUser) == resultCheckMatch.OwnerId {
 			//query delete match
 			query := "DELETE FROM likes WHERE id = $1"
 			_, errQueryDelete := tx.Exec(query, c.Param("id"))
