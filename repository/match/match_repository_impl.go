@@ -21,7 +21,7 @@ import (
 func GetMatches(c *gin.Context, tx *sql.DB) (responsedto.DefaultResponse, error) {
 	loggedUserEmail, _ := helper.ExtractTokenEmail(c)
 	idUser := userRepository.FindIdByEmail(c, tx, loggedUserEmail.(string))
-	queryTes := "select l.id, l.message, l.created_at, u.name, u.email, u.created_at, c.id, c.name, c.race, c.sex, c.description, c.age_in_month, c.image_urls, c.is_matched, c.created_at, c2.id , c2.name , c2.race , c2.sex , c2.description , c2.age_in_month , c2.image_urls , c2.is_matched , c2.created_at from likes l join users u on l.owner_id = u.id join cats c ON l.liked_cat_id = c.id join cats c2 on l.cat_id = c2.id where l.owner_id = $1 or l.liked_owner_id = $1 order by l.created_at desc"
+	queryTes := "select l.id, l.message, l.created_at, u.name, u.email, u.created_at, c.id, c.name, c.race, c.sex, c.description, c.age_in_month, c.image_urls, c.has_matched, c.created_at, c2.id , c2.name , c2.race , c2.sex , c2.description , c2.age_in_month , c2.image_urls , c2.has_matched , c2.created_at from likes l join users u on l.owner_id = u.id join cats c ON l.liked_cat_id = c.id join cats c2 on l.cat_id = c2.id where l.owner_id = $1 or l.liked_owner_id = $1 order by l.created_at desc"
 	rows, errorQuery := tx.Query(queryTes, idUser)
 	if errorQuery != nil {
 		log.Fatal(errorQuery)
@@ -36,6 +36,7 @@ func GetMatches(c *gin.Context, tx *sql.DB) (responsedto.DefaultResponse, error)
 		Message: "success",
 		Data:    listData,
 	}
+	fmt.Println("ini data match", listData[0])
 	c.JSON(http.StatusOK, response)
 	return response, nil
 }
@@ -44,7 +45,7 @@ func ValidateCreateMatch(c *gin.Context, tx *sql.DB, req requestdto.MatchCreateR
 	loggedUserEmail, _ := helper.ExtractTokenEmail(c)
 	idUser := userRepository.FindIdByEmail(c, tx, loggedUserEmail.(string))
 
-	query := "SELECT id, name, owner_id, sex, is_matched, is_deleted FROM cats WHERE id in ($1, $2)"
+	query := "SELECT id, name, owner_id, sex, has_matched, is_deleted FROM cats WHERE id in ($1, $2)"
 	rows, err := tx.Query(query, req.UserCatId, req.MatchCatId)
 	if err != nil {
 		log.Fatal(err)
@@ -62,13 +63,13 @@ func ValidateCreateMatch(c *gin.Context, tx *sql.DB, req requestdto.MatchCreateR
 			&check.Name,
 			&check.OwnerId,
 			&check.Sex,
-			&check.IsMatched,
+			&check.HasMatched,
 			&check.IsDeleted,
 		)
 		helper.PanicIfError(err)
 		if check.Id == req.UserCatId {
 			if check.OwnerId != strconv.Itoa(idUser) {
-				log.Fatal(err)
+				// log.Fatal(err)
 				err_message := fmt.Sprintf("cat id %s is not belong to the user %s", check.Id, loggedUserEmail)
 				return userCat, matchCat, "", http.StatusBadRequest, err_message, errors.New(err_message)
 			} else {
@@ -78,7 +79,7 @@ func ValidateCreateMatch(c *gin.Context, tx *sql.DB, req requestdto.MatchCreateR
 			matchCat = check
 		}
 	}
-	if (userCat.IsMatched) || (matchCat.IsMatched) {
+	if (userCat.HasMatched) || (matchCat.HasMatched) {
 		// log.Fatal(err)
 		err_message := fmt.Sprintf("neither cat id %v and %v has been matched", userCat.Id, matchCat.Id)
 
@@ -168,7 +169,7 @@ func ApproveMatch(c *gin.Context, tx *sql.DB, req requestdto.MatchApproveRequest
 			log.Fatal(err_delete)
 		}
 
-		query_update_cat := "UPDATE cats SET is_matched = true WHERE id = $1 or id = $2"
+		query_update_cat := "UPDATE cats SET has_matched = true WHERE id = $1 or id = $2"
 		_, err_update := tx.Exec(query_update_cat, resultMatch.CatId, resultMatch.LikedCatId)
 		if err_update != nil {
 			log.Fatal(err_update)

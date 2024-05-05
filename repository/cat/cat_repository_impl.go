@@ -23,7 +23,7 @@ func CreateCat(c *gin.Context, tx *sql.DB, user requestdto.CatCreateRequest) {
 	//get id user from email token jwt
 	loggedUserEmail, _ := helper.ExtractTokenEmail(c)
 	idUser := repository.FindIdByEmail(c, tx, loggedUserEmail.(string))
-	query := "INSERT INTO cats (name, race, sex, age_in_month, description, image_urls ,owner_id, is_matched, is_deleted) VALUES ($1, $2, $3, $4, $5,  $6 , $7, $8, $9) RETURNING id, created_at"
+	query := "INSERT INTO cats (name, race, sex, age_in_month, description, image_urls ,owner_id, has_matched, is_deleted) VALUES ($1, $2, $3, $4, $5,  $6 , $7, $8, $9) RETURNING id, created_at"
 	fmt.Println("ini query insertnya ", query)
 	fmt.Println("ini request nya ", user)
 	var arrayText string
@@ -71,7 +71,7 @@ func CreateCat(c *gin.Context, tx *sql.DB, user requestdto.CatCreateRequest) {
 func GetCats(c *gin.Context, tx *sql.DB) {
 	loggedUserEmail, _ := helper.ExtractTokenEmail(c)
 	idUser := repository.FindIdByEmail(c, tx, loggedUserEmail.(string))
-	query := "SELECT id, name, race, sex, age_in_month, description, image_urls, is_matched, created_at FROM cats"
+	query := "SELECT id, name, race, sex, age_in_month, description, image_urls, has_matched, created_at FROM cats"
 	filtersString := []string{}
 	//add filter id
 	filterId := c.Query("id")
@@ -97,9 +97,9 @@ func GetCats(c *gin.Context, tx *sql.DB) {
 	filterHasMatched := c.Query("hasMatched") == "true"
 	// fmt.Print("filterHasMatched : ", filterHasMatched)
 	if filterHasMatched {
-		filtersString = append(filtersString, fmt.Sprintf(" is_matched = %s", strconv.FormatBool(filterHasMatched)))
+		filtersString = append(filtersString, fmt.Sprintf(" has_matched = %s", strconv.FormatBool(filterHasMatched)))
 	} else {
-		filtersString = append(filtersString, fmt.Sprintf(" is_matched = %s", strconv.FormatBool(filterHasMatched)))
+		filtersString = append(filtersString, fmt.Sprintf(" has_matched = %s", strconv.FormatBool(filterHasMatched)))
 	}
 	//add fillter ageInMonth
 	filterAgeInMonth := c.Query("ageInMonth")
@@ -181,7 +181,6 @@ func GetCats(c *gin.Context, tx *sql.DB) {
 		c.JSON(http.StatusOK, response)
 		return
 	}
-	fmt.Println("sampai sini end")
 	response := responsedto.DefaultResponse{
 		Message: "success",
 		Data:    listCat,
@@ -235,15 +234,15 @@ func UpdateCat(c *gin.Context, tx *sql.DB, user requestdto.CatCreateRequest) (re
 }
 
 func checkIsAlreadyMatched(tx *sql.DB, idCat string, inputSex string) bool {
-	query := "SELECT sex, is_matched FROM cats WHERE id = $1"
+	query := "SELECT sex, has_matched FROM cats WHERE id = $1"
 	resultCat := domain.Cat{}
-	err := tx.QueryRow(query, idCat).Scan(&resultCat.Sex, &resultCat.IsMatched)
+	err := tx.QueryRow(query, idCat).Scan(&resultCat.Sex, &resultCat.HasMatched)
 	//handle error
 	if err != nil {
 		fmt.Println("errornya masuk sini check is already matched : \n", err)
 		log.Fatal(err)
 	}
-	if resultCat.IsMatched && inputSex != resultCat.Sex {
+	if resultCat.HasMatched && inputSex != resultCat.Sex {
 		return true
 	}
 	return false
