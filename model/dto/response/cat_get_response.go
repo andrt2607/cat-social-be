@@ -8,6 +8,6 @@ type CatGetResponse struct {
 	AgeInMonth  int      `json:"ageInMonth"`
 	ImageUrls   []string `json:"imageUrls"`
 	Description string   `json:"description"`
-	HasMatched  string   `json:"hasMatched"`
+	HasMatched  bool     `json:"hasMatched"`
 	CreatedAt   string   `json:"createdAt"`
 }

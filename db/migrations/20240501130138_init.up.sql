@@ -7,8 +7,11 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP
 );
 
+CREATE index email_user on users(email);
+
 CREATE TABLE IF NOT EXISTS cats (
     id SERIAL PRIMARY KEY,
+    -- owner_id INT,
     owner_id INT REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR(30) NOT NULL,
     race VARCHAR(50) CHECK (race IN (
@@ -19,12 +22,16 @@ CREATE TABLE IF NOT EXISTS cats (
     age_in_month INT CHECK (age_in_month >= 1 AND age_in_month <= 120082) NOT NULL,
     description TEXT NOT NULL,
     image_urls TEXT[] NOT NULL,
-    is_matched BOOLEAN,
+    has_matched BOOLEAN,
     is_deleted BOOLEAN,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP,
-    FOREIGN KEY (owner_id) REFERENCES users(id)
+    updated_at TIMESTAMP
+    -- FOREIGN KEY (owner_id) REFERENCES users(id)
 );
+
+-- CREATE index race_cat on cats(race);
+CREATE index owner_cat on cats(owner_id);
+-- CREATE index age_cat on cats(age_in_month);
 
 CREATE TABLE IF NOT EXISTS likes (
     id SERIAL PRIMARY KEY,
@@ -35,9 +42,11 @@ CREATE TABLE IF NOT EXISTS likes (
     approval_status VARCHAR(15) CHECK (approval_status IN ('approved', 'rejected', 'pending')) NOT NULL,
     message VARCHAR(120) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP,
-    FOREIGN KEY (owner_id) REFERENCES users(id),
-    FOREIGN KEY (liked_owner_id) REFERENCES users(id),
-    FOREIGN KEY (cat_id) REFERENCES cats(id),
-    FOREIGN KEY (liked_cat_id) REFERENCES cats(id)
+    updated_at TIMESTAMP
+    -- FOREIGN KEY (owner_id) REFERENCES users(id),
+    -- FOREIGN KEY (liked_owner_id) REFERENCES users(id),
+    -- FOREIGN KEY (cat_id) REFERENCES cats(id),
+    -- FOREIGN KEY (liked_cat_id) REFERENCES cats(id)
 );
+CREATE index owner_likes on likes(owner_id, liked_owner_id);
+-- CREATE index cat_likes on likes(cat_id, liked_cat_id);

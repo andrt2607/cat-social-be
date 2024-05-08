@@ -13,7 +13,7 @@ type Cat struct {
 	Description string
 	ImageUrls   string
 	OwnerId     string
-	IsMatched   bool
+	HasMatched  bool
 	IsDeleted   bool
 	CreatedAt   time.Time `json:"created_at"`
 	UpdatedAt   time.Time
